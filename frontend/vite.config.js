@@ -7,4 +7,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    include: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/lab',
+    ],
+  },
 })
