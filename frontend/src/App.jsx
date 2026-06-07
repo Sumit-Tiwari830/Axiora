@@ -1,7 +1,7 @@
-import Homepage from "./pages/Homepage";
+import ChooseUser from "./pages/ChooseUser";
 
 function App() {
-  return <Homepage />;
+  return <ChooseUser />;
 }
 
 export default App;
