@@ -6,21 +6,13 @@ import {
     TableHead,
     TablePagination,
     Paper,
-    TableRow,
-    Box,
     Typography,
+    Box,
 } from "@mui/material";
 
-import {
-    StyledTableCell,
-    StyledTableRow,
-} from "./styles";
+import { StyledTableCell, StyledTableRow } from "./styles";
 
-const TableTemplate = ({
-    buttonHaver: ButtonHaver,
-    columns = [],
-    rows = [],
-}) => {
+const TableViewTemplate = ({ columns = [], rows = [] }) => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -35,17 +27,16 @@ const TableTemplate = ({
 
     if (!rows.length) {
         return (
-            <Paper
+            <Box
                 sx={{
                     p: 4,
                     textAlign: "center",
-                    borderRadius: 3,
                 }}
             >
                 <Typography variant="h6" color="text.secondary">
-                    No Data Found
+                    No Data Available
                 </Typography>
-            </Paper>
+            </Box>
         );
     }
 
@@ -53,15 +44,14 @@ const TableTemplate = ({
         <Paper
             elevation={0}
             sx={{
-                borderRadius: "20px",
+                borderRadius: 3,
                 overflow: "hidden",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
             }}
         >
             <TableContainer>
                 <Table stickyHeader>
                     <TableHead>
-                        <TableRow>
+                        <StyledTableRow>
                             {columns.map((column) => (
                                 <StyledTableCell
                                     key={column.id}
@@ -73,11 +63,7 @@ const TableTemplate = ({
                                     {column.label}
                                 </StyledTableCell>
                             ))}
-
-                            <StyledTableCell align="center">
-                                Actions
-                            </StyledTableCell>
-                        </TableRow>
+                        </StyledTableRow>
                     </TableHead>
 
                     <TableBody>
@@ -106,19 +92,6 @@ const TableTemplate = ({
                                             </StyledTableCell>
                                         );
                                     })}
-
-                                    <StyledTableCell align="center">
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                gap: 1,
-                                                justifyContent: "center",
-                                                flexWrap: "wrap",
-                                            }}
-                                        >
-                                            <ButtonHaver row={row} />
-                                        </Box>
-                                    </StyledTableCell>
                                 </StyledTableRow>
                             ))}
                     </TableBody>
@@ -138,4 +111,4 @@ const TableTemplate = ({
     );
 };
 
-export default TableTemplate;
+export default TableViewTemplate;
