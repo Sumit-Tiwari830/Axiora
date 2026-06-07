@@ -7,7 +7,10 @@ import {
     TablePagination,
     Paper,
     TableRow,
+    Box,
+    Typography,
 } from "@mui/material";
+
 import {
     StyledTableCell,
     StyledTableRow,
@@ -15,11 +18,36 @@ import {
 
 const TableTemplate = ({
     buttonHaver: ButtonHaver,
-    columns,
-    rows,
+    columns = [],
+    rows = [],
 }) => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
+
+    const handlePageChange = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleRowsChange = (event) => {
+        setRowsPerPage(Number(event.target.value));
+        setPage(0);
+    };
+
+    if (!rows.length) {
+        return (
+            <Paper
+                sx={{
+                    p: 4,
+                    textAlign: "center",
+                    borderRadius: 3,
+                }}
+            >
+                <Typography variant="h6" color="text.secondary">
+                    No Data Found
+                </Typography>
+            </Paper>
+        );
+    }
 
     return (
         <Paper
@@ -31,18 +59,21 @@ const TableTemplate = ({
             }}
         >
             <TableContainer>
-                <Table stickyHeader aria-label="sticky table">
+                <Table stickyHeader>
                     <TableHead>
                         <TableRow>
                             {columns.map((column) => (
                                 <StyledTableCell
                                     key={column.id}
                                     align={column.align}
-                                    style={{ minWidth: column.minWidth }}
+                                    sx={{
+                                        minWidth: column.minWidth,
+                                    }}
                                 >
                                     {column.label}
                                 </StyledTableCell>
                             ))}
+
                             <StyledTableCell align="center">
                                 Actions
                             </StyledTableCell>
@@ -51,12 +82,15 @@ const TableTemplate = ({
 
                     <TableBody>
                         {rows
-                            ?.slice(
+                            .slice(
                                 page * rowsPerPage,
                                 page * rowsPerPage + rowsPerPage
                             )
                             .map((row) => (
-                                <StyledTableRow hover key={row.id}>
+                                <StyledTableRow
+                                    hover
+                                    key={row.id}
+                                >
                                     {columns.map((column) => {
                                         const value = row[column.id];
 
@@ -65,7 +99,8 @@ const TableTemplate = ({
                                                 key={column.id}
                                                 align={column.align}
                                             >
-                                                {column.format && typeof value === "number"
+                                                {column.format &&
+                                                    typeof value === "number"
                                                     ? column.format(value)
                                                     : value}
                                             </StyledTableCell>
@@ -73,7 +108,16 @@ const TableTemplate = ({
                                     })}
 
                                     <StyledTableCell align="center">
-                                        <ButtonHaver row={row} />
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                gap: 1,
+                                                justifyContent: "center",
+                                                flexWrap: "wrap",
+                                            }}
+                                        >
+                                            <ButtonHaver row={row} />
+                                        </Box>
                                     </StyledTableCell>
                                 </StyledTableRow>
                             ))}
@@ -82,16 +126,13 @@ const TableTemplate = ({
             </TableContainer>
 
             <TablePagination
-                rowsPerPageOptions={[5, 10, 25, 100]}
                 component="div"
-                count={rows?.length || 0}
-                rowsPerPage={rowsPerPage}
+                count={rows.length}
                 page={page}
-                onPageChange={(event, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(event) => {
-                    setRowsPerPage(parseInt(event.target.value, 10));
-                    setPage(0);
-                }}
+                rowsPerPage={rowsPerPage}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsChange}
+                rowsPerPageOptions={[5, 10, 25, 50]}
             />
         </Paper>
     );
