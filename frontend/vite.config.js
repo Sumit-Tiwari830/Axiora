@@ -12,6 +12,9 @@ export default defineConfig({
       '@mui/material',
       '@mui/icons-material',
       '@mui/lab',
+      'recharts',
+      'es-toolkit',
+      'es-toolkit/compat'
     ],
   },
 })

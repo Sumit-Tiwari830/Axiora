@@ -13,7 +13,7 @@ import {
     getError,
 } from "./userSlice";
 
-const api = process.env.REACT_APP_BASE_URL;
+const api = import.meta.env.VITE_REACT_APP_BASE_URL;
 
 export const loginUser = (fields, role) => async (dispatch) => {
     dispatch(authRequest());
