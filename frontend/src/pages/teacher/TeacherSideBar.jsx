@@ -10,11 +10,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import HomeIcon from "@mui/icons-material/Home";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import AnnouncementOutlinedIcon from "@mui/icons-material/AnnouncementOutlined";
-import ClassOutlinedIcon from "@mui/icons-material/ClassOutlined";
+import { Home as HomeIcon, ExitToApp as ExitToAppIcon, AccountCircleOutlined as AccountCircleOutlinedIcon, AnnouncementOutlined as AnnouncementOutlinedIcon, ClassOutlined as ClassOutlinedIcon } from '@mui/icons-material';
 
 const TeacherSideBar = () => {
     const location = useLocation();

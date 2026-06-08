@@ -5,7 +5,7 @@ import { getSubjectDetails } from '../../../redux/sclassRelated/sclassHandle';
 import Popup from '../../../components/Popup';
 import { registerUser } from '../../../redux/userRelated/userHandle';
 import { underControl } from '../../../redux/userRelated/userSlice';
-import { CircularProgress } from '@mui/material';
+import { CircularProgress, Box, Paper, Typography, TextField, Button } from '@mui/material';
 
 const AddTeacher = () => {
     const params = useParams()

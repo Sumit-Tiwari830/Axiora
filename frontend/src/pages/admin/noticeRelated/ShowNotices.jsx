@@ -10,8 +10,7 @@ import {
     Typography,
 } from "@mui/material";
 
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { NoteAdd as NoteAddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 import { getAllNotices } from "../../../redux/noticeRelated/noticeHandle";
 import { deleteUser } from "../../../redux/userRelated/userHandle";
