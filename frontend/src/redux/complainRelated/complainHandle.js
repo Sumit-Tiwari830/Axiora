@@ -6,7 +6,7 @@ import {
     getError,
 } from "./complainSlice";
 
-const baseUrl = process.env.REACT_APP_BASE_URL;
+const baseUrl = import.meta.env.VITE_REACT_APP_BASE_URL;
 
 // ==================== GET ALL COMPLAINS ====================
 
