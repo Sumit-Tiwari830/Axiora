@@ -1,6 +1,5 @@
 import { Container, Grid, Paper, Typography } from "@mui/material";
 import SeeNotice from "../../components/SeeNotice";
-import CountUp from "react-countup";
 import styled from "styled-components";
 import Students from "../../assets/img1.png";
 import Lessons from "../../assets/subjects.svg";
@@ -11,7 +10,23 @@ import {
     getSubjectDetails,
 } from "../../redux/sclassRelated/sclassHandle";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+const useAnimatedCount = (target, duration = 1500) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (!target) { setCount(0); return; }
+        let start = 0;
+        const step = Math.ceil(target / (duration / 16));
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) { setCount(target); clearInterval(timer); }
+            else setCount(start);
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+    return count;
+};
 
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
@@ -54,14 +69,13 @@ const TeacherHomePage = () => {
         classID,
     ]);
 
-    const numberOfStudents =
-        sclassStudents?.length || 0;
+    const numberOfStudents = sclassStudents?.length || 0;
+    const numberOfSessions = subjectDetails?.sessions || 0;
+    const estimatedHours = numberOfSessions;
 
-    const numberOfSessions =
-        subjectDetails?.sessions || 0;
-
-    const estimatedHours =
-        numberOfSessions;
+    const animStudents = useAnimatedCount(numberOfStudents);
+    const animSessions = useAnimatedCount(numberOfSessions);
+    const animHours = useAnimatedCount(estimatedHours);
 
     return (
         <Container
@@ -100,13 +114,7 @@ const TeacherHomePage = () => {
                             Class Students
                         </Title>
 
-                        <Data
-                            start={0}
-                            end={
-                                numberOfStudents
-                            }
-                            duration={2}
-                        />
+                        <Data>{animStudents}</Data>
                     </StyledPaper>
                 </Grid>
 
@@ -127,13 +135,7 @@ const TeacherHomePage = () => {
                             Total Sessions
                         </Title>
 
-                        <Data
-                            start={0}
-                            end={
-                                numberOfSessions
-                            }
-                            duration={2}
-                        />
+                        <Data>{animSessions}</Data>
                     </StyledPaper>
                 </Grid>
 
@@ -188,14 +190,7 @@ const TeacherHomePage = () => {
                             Total Hours
                         </Title>
 
-                        <Data
-                            start={0}
-                            end={
-                                estimatedHours
-                            }
-                            duration={2}
-                            suffix=" hrs"
-                        />
+                        <Data>{animHours} hrs</Data>
                     </StyledPaper>
                 </Grid>
 
@@ -244,7 +239,7 @@ const Title = styled.p`
     margin: 0;
 `;
 
-const Data = styled(CountUp)`
+const Data = styled.div`
     font-size: 2rem;
     font-weight: 700;
     color: #16a34a;

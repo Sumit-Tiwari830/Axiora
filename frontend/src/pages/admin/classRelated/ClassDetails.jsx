@@ -12,12 +12,9 @@ import TabPanel from '@mui/lab/TabPanel';
 import { resetSubjects } from "../../../redux/sclassRelated/sclassSlice";
 import { BlueButton, GreenButton, PurpleButton } from "../../../components/buttonStyles";
 import TableTemplate from "../../../components/TableTemplate";
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import { PersonAddAlt1 as PersonAddAlt1Icon, PersonRemove as PersonRemoveIcon, Delete as DeleteIcon, PostAdd as PostAddIcon } from '@mui/icons-material';
 import SpeedDialTemplate from "../../../components/SpeedDialTemplate";
 import Popup from "../../../components/Popup";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PostAddIcon from '@mui/icons-material/PostAdd';
 
 const ClassDetails = () => {
     const params = useParams()

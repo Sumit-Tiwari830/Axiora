@@ -6,10 +6,9 @@ import {
     Paper, Table, TableBody, TableContainer,
     TableHead, TablePagination, Button, Box, IconButton,
 } from '@mui/material';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import { PersonRemove as PersonRemoveIcon, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
 import { StyledTableCell, StyledTableRow } from '../../../components/styles';
 import { BlueButton, GreenButton } from '../../../components/buttonStyles';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import Popup from '../../../components/Popup';
 

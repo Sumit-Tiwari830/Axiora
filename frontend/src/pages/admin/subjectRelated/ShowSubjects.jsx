@@ -3,8 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
 import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
 
-import PostAddIcon from '@mui/icons-material/PostAdd';
-import DeleteIcon from "@mui/icons-material/Delete";
+import { PostAdd as PostAddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 import {
     Paper,

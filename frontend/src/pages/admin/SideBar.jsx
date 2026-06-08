@@ -11,15 +11,17 @@ import {
 
 import { Link, useLocation } from "react-router-dom";
 
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import AnnouncementOutlinedIcon from "@mui/icons-material/AnnouncementOutlined";
-import ClassOutlinedIcon from "@mui/icons-material/ClassOutlined";
-import SupervisorAccountOutlinedIcon from "@mui/icons-material/SupervisorAccountOutlined";
-import ReportIcon from "@mui/icons-material/Report";
-import AssignmentIcon from "@mui/icons-material/Assignment";
+import {
+    Dashboard as DashboardIcon,
+    PersonOutline as PersonOutlineIcon,
+    ExitToApp as ExitToAppIcon,
+    AccountCircleOutlined as AccountCircleOutlinedIcon,
+    AnnouncementOutlined as AnnouncementOutlinedIcon,
+    ClassOutlined as ClassOutlinedIcon,
+    SupervisorAccountOutlined as SupervisorAccountOutlinedIcon,
+    Report as ReportIcon,
+    Assignment as AssignmentIcon,
+} from "@mui/icons-material";
 
 const SideBar = () => {
     const location = useLocation();
@@ -53,7 +55,6 @@ const SideBar = () => {
                 >
                     AXIORA </Typography>
 
-                ```
                 <Typography
                     sx={{
                         color: "rgba(255,255,255,0.75)",

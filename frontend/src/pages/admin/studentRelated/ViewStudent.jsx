@@ -14,10 +14,7 @@ import CustomBarChart from '../../../components/CustomBarChart';
 import CustomPieChart from '../../../components/CustomPieChart';
 import { StyledTableCell, StyledTableRow } from '../../../components/styles';
 
-import InsertChartIcon from '@mui/icons-material/InsertChart';
-import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import { InsertChart as InsertChartIcon, InsertChartOutlined as InsertChartOutlinedIcon, TableChart as TableChartIcon, TableChartOutlined as TableChartOutlinedIcon } from '@mui/icons-material';
 import Popup from '../../../components/Popup';
 
 const ViewStudent = () => {

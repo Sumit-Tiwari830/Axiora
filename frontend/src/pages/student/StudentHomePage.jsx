@@ -70,8 +70,9 @@ const StudentHomePage = () => {
         }
     }, [userDetails]);
 
-    const numberOfSubjects =
-        subjectsList?.length || 0;
+    const numberOfSubjects = subjectsList?.length || 0;
+    const animSubjects = useAnimatedCount(numberOfSubjects);
+    const animAssignments = useAnimatedCount(15);
 
     const overallAttendancePercentage =
         calculateOverallAttendancePercentage(
@@ -155,13 +156,7 @@ const StudentHomePage = () => {
                             Total Subjects
                         </Title>
 
-                        <Data
-                            start={0}
-                            end={
-                                numberOfSubjects
-                            }
-                            duration={2}
-                        />
+                        <Data>{animSubjects}</Data>
                     </StyledPaper>
                 </Grid>
 
@@ -183,11 +178,7 @@ const StudentHomePage = () => {
                             Assignments
                         </Title>
 
-                        <Data
-                            start={0}
-                            end={15}
-                            duration={2}
-                        />
+                        <Data>{animAssignments}</Data>
                     </StyledPaper>
                 </Grid>
 
@@ -315,8 +306,24 @@ const Title = styled.p`
     margin: 0;
 `;
 
-const Data = styled(CountUp)`
+const Data = styled.div`
     font-size: 2rem;
     font-weight: 700;
     color: #2563eb;
 `;
+
+const useAnimatedCount = (target, duration = 1500) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (!target) { setCount(0); return; }
+        let start = 0;
+        const step = Math.ceil(target / (duration / 16));
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) { setCount(target); clearInterval(timer); }
+            else setCount(start);
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+    return count;
+};

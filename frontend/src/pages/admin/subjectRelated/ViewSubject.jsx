@@ -9,10 +9,7 @@ import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 
-import InsertChartIcon from '@mui/icons-material/InsertChart';
-import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import { InsertChart as InsertChartIcon, InsertChartOutlined as InsertChartOutlinedIcon, TableChart as TableChartIcon, TableChartOutlined as TableChartOutlinedIcon } from '@mui/icons-material';
 
 const ViewSubject = () => {
     const navigate = useNavigate()

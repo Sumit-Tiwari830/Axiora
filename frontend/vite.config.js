@@ -13,6 +13,8 @@ export default defineConfig({
       '@mui/icons-material',
       '@mui/lab',
       'recharts',
+      'react-countup',
+      'styled-components',
       'es-toolkit',
       'es-toolkit/compat'
     ],

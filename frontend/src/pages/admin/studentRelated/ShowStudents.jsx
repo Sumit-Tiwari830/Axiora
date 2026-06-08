@@ -6,10 +6,9 @@ import { deleteUser } from '../../../redux/userRelated/userHandle';
 import {
     Paper, Box, IconButton
 } from '@mui/material';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import { PersonRemove as PersonRemoveIcon, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
 import { BlackButton, BlueButton, GreenButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 
 import * as React from 'react';

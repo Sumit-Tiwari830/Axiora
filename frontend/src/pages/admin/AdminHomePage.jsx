@@ -5,12 +5,27 @@ import Classes from "../../assets/img2.png";
 import Teachers from "../../assets/img3.png";
 import Fees from "../../assets/img4.png";
 import styled from "styled-components";
-import CountUp from "react-countup";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getAllSclasses } from "../../redux/sclassRelated/sclassHandle";
 import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
+
+const useAnimatedCount = (target, duration = 1500) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (!target) { setCount(0); return; }
+        let start = 0;
+        const step = Math.ceil(target / (duration / 16));
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) { setCount(target); clearInterval(timer); }
+            else setCount(start);
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+    return count;
+};
 
 const AdminHomePage = () => {
     const dispatch = useDispatch();
@@ -33,6 +48,11 @@ const AdminHomePage = () => {
     const numberOfClasses = sclassesList?.length || 0;
     const numberOfTeachers = teachersList?.length || 0;
 
+    const animStudents = useAnimatedCount(numberOfStudents);
+    const animClasses = useAnimatedCount(numberOfClasses);
+    const animTeachers = useAnimatedCount(numberOfTeachers);
+    const animActive = useAnimatedCount(numberOfStudents + numberOfTeachers);
+
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
             <WelcomeSection>
@@ -49,9 +69,7 @@ const AdminHomePage = () => {
                     <StatCard>
                         <img src={Students} alt="students" width="70" />
                         <CardTitle>Students</CardTitle>
-                        <CardNumber>
-                            <CountUp start={0} end={numberOfStudents} duration={2} />
-                        </CardNumber>
+                        <CardNumber>{animStudents}</CardNumber>
                     </StatCard>
                 </Grid>
 
@@ -59,9 +77,7 @@ const AdminHomePage = () => {
                     <StatCard>
                         <img src={Classes} alt="classes" width="70" />
                         <CardTitle>Classes</CardTitle>
-                        <CardNumber>
-                            <CountUp start={0} end={numberOfClasses} duration={2} />
-                        </CardNumber>
+                        <CardNumber>{animClasses}</CardNumber>
                     </StatCard>
                 </Grid>
 
@@ -69,9 +85,7 @@ const AdminHomePage = () => {
                     <StatCard>
                         <img src={Teachers} alt="teachers" width="70" />
                         <CardTitle>Teachers</CardTitle>
-                        <CardNumber>
-                            <CountUp start={0} end={numberOfTeachers} duration={2} />
-                        </CardNumber>
+                        <CardNumber>{animTeachers}</CardNumber>
                     </StatCard>
                 </Grid>
 
@@ -79,9 +93,7 @@ const AdminHomePage = () => {
                     <StatCard>
                         <img src={Fees} alt="axiora" width="70" />
                         <CardTitle>Active Users</CardTitle>
-                        <CardNumber>
-                            <CountUp start={0} end={numberOfStudents + numberOfTeachers} duration={2} />
-                        </CardNumber>
+                        <CardNumber>{animActive}</CardNumber>
                     </StatCard>
                 </Grid>
 

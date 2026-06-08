@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IconButton, Box, Menu, MenuItem, ListItemIcon, Tooltip } from '@mui/material';
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Delete as DeleteIcon, PostAdd as PostAddIcon, PersonAddAlt1 as PersonAddAlt1Icon, AddCard as AddCardIcon } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
@@ -9,9 +9,7 @@ import { BlueButton, GreenButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
 
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
-import PostAddIcon from '@mui/icons-material/PostAdd';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import AddCardIcon from '@mui/icons-material/AddCard';
+
 import styled from 'styled-components';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import Popup from '../../../components/Popup';
