@@ -8,6 +8,7 @@ const { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail,
 const { complainCreate, complainList, deleteComplain } = require('../controllers/complain-controller.js');
 const { noticeCreate, noticeList, deleteNotices, deleteNotice, updateNotice } = require('../controllers/notice-controller.js');
 const { createFee, getFeesList, getFeeDetails } = require('../controllers/fee-controller.js');
+const { createOrder, verifyPayment } = require('../controllers/payment-controller.js');
 const {
     studentRegister,
     studentLogIn,
@@ -113,6 +114,10 @@ router.delete("/Sclass/:id", deleteSclass)
 router.post('/FeeCreate', createFee);
 router.get('/FeesList/:id', getFeesList);
 router.get('/Fee/:id', getFeeDetails);
+
+// Payment (Razorpay)
+router.post('/razorpay/order', createOrder);
+router.post('/razorpay/verify', verifyPayment);
 
 // Subject
 
