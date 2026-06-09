@@ -28,7 +28,7 @@ const AddFee = () => {
 
         const fields = { feeAmount, feeDetails, sclassName, school: currentUser._id, dueDate };
 
-        axios.post(`${import.meta.env.VITE_BASE_URL}/FeeCreate`, fields, {
+        axios.post(`${process.env.REACT_APP_BASE_URL}/FeeCreate`, fields, {
             headers: { 'Content-Type': 'application/json' },
         })
         .then((res) => {
