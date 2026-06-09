@@ -46,14 +46,12 @@ const ClassDetails = () => {
     const deleteHandler = (deleteID, address) => {
         console.log(deleteID);
         console.log(address);
-        setMessage("Delete functionality will be available soon.")
-        setShowPopup(true)
-        // dispatch(deleteUser(deleteID, address))
-        //     .then(() => {
-        //         dispatch(getClassStudents(classID));
-        //         dispatch(resetSubjects())
-        //         dispatch(getSubjectList(classID, "ClassSubjects"))
-        //     })
+        dispatch(deleteUser(deleteID, address))
+            .then(() => {
+                dispatch(getClassStudents(classID));
+                dispatch(resetSubjects())
+                dispatch(getSubjectList(classID, "ClassSubjects"))
+            })
     }
 
     const subjectColumns = [
