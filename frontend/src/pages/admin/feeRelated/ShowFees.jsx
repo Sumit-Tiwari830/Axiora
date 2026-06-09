@@ -15,7 +15,7 @@ const ShowFees = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_BASE_URL}/FeesList/${currentUser._id}`)
+        axios.get(`${import.meta.env.VITE_REACT_APP_BASE_URL}/FeesList/${currentUser._id}`)
             .then(res => {
                 if (Array.isArray(res.data)) {
                     setFees(res.data);

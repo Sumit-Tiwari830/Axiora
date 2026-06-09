@@ -14,14 +14,14 @@ const ViewFee = () => {
         const fetchFeeAndStudents = async () => {
             try {
                 // 1. Fetch fee details
-                const feeRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/Fee/${id}`);
+                const feeRes = await axios.get(`${import.meta.env.VITE_REACT_APP_BASE_URL}/Fee/${id}`);
                 const feeData = feeRes.data;
                 setFee(feeData);
 
                 if (feeData && feeData.sclassName) {
                     // 2. Fetch students of that class
                     const sclassId = typeof feeData.sclassName === 'object' ? feeData.sclassName._id : feeData.sclassName;
-                    const studentRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/Sclass/Students/${sclassId}`);
+                    const studentRes = await axios.get(`${import.meta.env.VITE_REACT_APP_BASE_URL}/Sclass/Students/${sclassId}`);
                     
                     if (Array.isArray(studentRes.data)) {
                         setStudents(studentRes.data);

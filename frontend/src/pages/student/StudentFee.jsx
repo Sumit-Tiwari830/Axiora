@@ -14,7 +14,7 @@ const StudentFee = () => {
                 const schoolId = typeof currentUser.school === 'object' ? currentUser.school._id : currentUser.school;
                 const classId = typeof currentUser.sclassName === 'object' ? currentUser.sclassName._id : currentUser.sclassName;
 
-                const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/FeesList/${schoolId}`);
+                const res = await axios.get(`${import.meta.env.VITE_REACT_APP_BASE_URL}/FeesList/${schoolId}`);
                 if (Array.isArray(res.data)) {
                     const classFees = res.data.filter(f => f.sclassName?._id === classId || f.sclassName === classId);
                     setFees(classFees);
@@ -44,7 +44,7 @@ const StudentFee = () => {
         }
 
         try {
-            const orderRes = await axios.post(`${process.env.REACT_APP_BASE_URL}/razorpay/order`, {
+            const orderRes = await axios.post(`${import.meta.env.VITE_REACT_APP_BASE_URL}/razorpay/order`, {
                 amount: fee.feeAmount,
                 currency: "INR"
             });
@@ -67,7 +67,7 @@ const StudentFee = () => {
                         amountPaid: fee.feeAmount
                     };
 
-                    const verifyRes = await axios.post(`${process.env.REACT_APP_BASE_URL}/razorpay/verify`, data);
+                    const verifyRes = await axios.post(`${import.meta.env.VITE_REACT_APP_BASE_URL}/razorpay/verify`, data);
                     if (verifyRes.data.message === "Payment successful") {
                         alert("Payment successful!");
                         window.location.reload();
