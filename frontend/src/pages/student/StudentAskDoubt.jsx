@@ -11,7 +11,11 @@ import {
     Divider
 } from '@mui/material';
 import { Lightbulb as LightbulbIcon } from '@mui/icons-material';
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 const StudentAskDoubt = () => {
     const [question, setQuestion] = useState("");
     const [answer, setAnswer] = useState("");
@@ -113,8 +117,13 @@ const StudentAskDoubt = () => {
                                 lineHeight: 1.6
                             }}
                         >
-                            <Typography variant="body1">
-                                {answer}
+                            <Typography variant="body1" component="div">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                    rehypePlugins={[rehypeKatex]}
+                                >
+                                    {answer}
+                                </ReactMarkdown>
                             </Typography>
                         </Paper>
                     </Box>
