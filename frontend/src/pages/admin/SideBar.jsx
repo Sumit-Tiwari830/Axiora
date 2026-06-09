@@ -196,9 +196,9 @@ const SideBar = () => {
 
             <ListItemButton
                 component={Link}
-                to="/Admin/addfee"
+                to="/Admin/fees"
                 sx={
-                    location.pathname.startsWith("/Admin/addfee")
+                    location.pathname.startsWith("/Admin/fees")
                         ? activeStyle
                         : {}
                 }
@@ -207,7 +207,7 @@ const SideBar = () => {
                     <PaymentIcon sx={{ color: "#fff" }} />
                 </ListItemIcon>
                 <ListItemText
-                    primary="Add Fee"
+                    primary="Fees"
                     primaryTypographyProps={{ style: textStyle }}
                 />
             </ListItemButton>
