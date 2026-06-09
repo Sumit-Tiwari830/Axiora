@@ -41,23 +41,26 @@ const LoginPage = ({ role }) => {
     const [passwordError, setPasswordError] = useState(false);
     const [rollNumberError, setRollNumberError] = useState(false);
     const [studentNameError, setStudentNameError] = useState(false);
+    const [schoolNameError, setSchoolNameError] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (role === "Student") {
             const rollNum = e.target.rollNumber.value.trim();
             const studentName = e.target.studentName.value.trim();
+            const schoolName = e.target.schoolName.value.trim();
             const password = e.target.password.value;
 
-            if (!rollNum || !studentName || !password) {
+            if (!rollNum || !studentName || !password || !schoolName) {
                 if (!rollNum) setRollNumberError(true);
                 if (!studentName) setStudentNameError(true);
+                if (!schoolName) setSchoolNameError(true);
                 if (!password) setPasswordError(true);
                 return;
             }
 
             setLoader(true);
-            dispatch(loginUser({ rollNum, studentName, password }, role));
+            dispatch(loginUser({ rollNum, studentName, schoolName, password }, role));
         } else {
             const email = e.target.email.value;
             const password = e.target.password.value;
@@ -79,6 +82,7 @@ const LoginPage = ({ role }) => {
         if (name === "password") setPasswordError(false);
         if (name === "rollNumber") setRollNumberError(false);
         if (name === "studentName") setStudentNameError(false);
+        if (name === "schoolName") setSchoolNameError(false);
     };
 
     useEffect(() => {
@@ -179,6 +183,16 @@ const LoginPage = ({ role }) => {
                                         name="studentName"
                                         error={studentNameError}
                                         helperText={studentNameError && "Name is required"}
+                                        onChange={handleInputChange}
+                                    />
+
+                                    <TextField
+                                        fullWidth
+                                        margin="normal"
+                                        label="School Name"
+                                        name="schoolName"
+                                        error={schoolNameError}
+                                        helperText={schoolNameError && "School Name is required"}
                                         onChange={handleInputChange}
                                     />
                                 </>
