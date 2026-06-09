@@ -27,7 +27,7 @@ const AddStudent = ({ situation }) => {
     const [name, setName] = useState("");
     const [rollNum, setRollNum] = useState("");
     const [password, setPassword] = useState("");
-    const [className, setClassName] = useState("");
+    const [className, setClassName] = useState("Select Class");
     const [sclassName, setSclassName] = useState("");
 
     const adminID = currentUser?._id
