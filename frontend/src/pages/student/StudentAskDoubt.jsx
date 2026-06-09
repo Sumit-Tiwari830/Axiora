@@ -10,7 +10,7 @@ import {
     Stack,
     Divider
 } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { Lightbulb as LightbulbIcon } from '@mui/icons-material';
 
 const StudentAskDoubt = () => {
     const [question, setQuestion] = useState("");
@@ -47,7 +47,7 @@ const StudentAskDoubt = () => {
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
             <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 800, borderRadius: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <AutoAwesomeIcon sx={{ color: '#7c3aed', mr: 2, fontSize: 32 }} />
+                    <LightbulbIcon sx={{ color: '#7c3aed', mr: 2, fontSize: 32 }} />
                     <Typography variant="h4" fontWeight="bold">
                         AI Doubt Solver
                     </Typography>
