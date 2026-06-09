@@ -45,8 +45,8 @@ const LoginPage = ({ role }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (role === "Student") {
-            const rollNum = e.target.rollNumber.value;
-            const studentName = e.target.studentName.value;
+            const rollNum = e.target.rollNumber.value.trim();
+            const studentName = e.target.studentName.value.trim();
             const password = e.target.password.value;
 
             if (!rollNum || !studentName || !password) {
