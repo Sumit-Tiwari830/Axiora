@@ -9,7 +9,7 @@ import {
 
 import { Link, useLocation } from "react-router-dom";
 
-import { Home as HomeIcon, ExitToApp as ExitToAppIcon, AccountCircleOutlined as AccountCircleOutlinedIcon, AnnouncementOutlined as AnnouncementOutlinedIcon, ClassOutlined as ClassOutlinedIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
+import { Home as HomeIcon, ExitToApp as ExitToAppIcon, AccountCircleOutlined as AccountCircleOutlinedIcon, AnnouncementOutlined as AnnouncementOutlinedIcon, ClassOutlined as ClassOutlinedIcon, Assignment as AssignmentIcon, HelpOutline as HelpOutlineIcon } from '@mui/icons-material';
 
 const StudentSideBar = () => {
     const location = useLocation();
@@ -99,6 +99,28 @@ const StudentSideBar = () => {
                 </ListItemIcon>
 
                 <ListItemText primary="Complaints" />
+            </ListItemButton>
+
+            <ListItemButton
+                component={Link}
+                to="/Student/ask-doubt"
+                selected={location.pathname.startsWith(
+                    "/Student/ask-doubt"
+                )}
+            >
+                <ListItemIcon>
+                    <HelpOutlineIcon
+                        color={
+                            location.pathname.startsWith(
+                                "/Student/ask-doubt"
+                            )
+                                ? "primary"
+                                : "inherit"
+                        }
+                    />
+                </ListItemIcon>
+
+                <ListItemText primary="AI Doubt Solver" />
             </ListItemButton>
 
             <Divider sx={{ my: 1 }} />

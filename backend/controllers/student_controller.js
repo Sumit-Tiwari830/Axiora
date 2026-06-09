@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const Student = require('../models/studentSchema.js');
 const Subject = require('../models/subjectSchema.js');
+const Admin = require('../models/adminSchema.js');
 
 const studentRegister = async (req, res) => {
     try {
@@ -35,7 +36,17 @@ const studentRegister = async (req, res) => {
 
 const studentLogIn = async (req, res) => {
     try {
-        let student = await Student.findOne({ rollNum: req.body.rollNum, name: req.body.studentName });
+        if (req.body.rollNum && req.body.studentName && req.body.password && req.body.schoolName) {
+            const school = await Admin.findOne({ schoolName: req.body.schoolName });
+            if (!school) {
+                return res.send({ message: "School not found" });
+            }
+
+            let student = await Student.findOne({ 
+                rollNum: req.body.rollNum, 
+                name: { $regex: new RegExp(`^${req.body.studentName.trim()}$`, 'i') },
+                school: school._id
+            });
         if (student) {
             const validated = await bcrypt.compare(req.body.password, student.password);
             if (validated) {
@@ -50,6 +61,9 @@ const studentLogIn = async (req, res) => {
             }
         } else {
             res.send({ message: "Student not found" });
+        }
+        } else {
+            res.send({ message: "Roll Number, Student Name, School Name, and Password are required" });
         }
     } catch (err) {
         res.status(500).json(err);
