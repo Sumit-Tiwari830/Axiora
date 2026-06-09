@@ -17,6 +17,7 @@ import StudentProfile from "./StudentProfile";
 import StudentSubjects from "./StudentSubjects";
 import ViewStdAttendance from "./ViewStdAttendance";
 import StudentComplain from "./StudentComplain";
+import StudentAskDoubt from "./StudentAskDoubt";
 import Logout from "../Logout";
 
 import AccountMenu from "../../components/AccountMenu";
@@ -121,6 +122,11 @@ const StudentDashboard = () => {
                         <Route
                             path="/Student/complain"
                             element={<StudentComplain />}
+                        />
+
+                        <Route
+                            path="/Student/ask-doubt"
+                            element={<StudentAskDoubt />}
                         />
 
                         <Route
