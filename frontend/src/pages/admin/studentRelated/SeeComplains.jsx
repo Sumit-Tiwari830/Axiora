@@ -4,9 +4,12 @@ import {
     Paper,
     Box,
     Checkbox,
+    IconButton
 } from '@mui/material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 
 import { getAllComplains } from '../../../redux/complainRelated/complainHandle';
+import { deleteUser } from '../../../redux/userRelated/userHandle';
 import TableTemplate from '../../../components/TableTemplate';
 
 const SeeComplains = () => {
@@ -35,6 +38,13 @@ const SeeComplains = () => {
 
     if (error) {
         console.log(error);
+    }
+
+    const deleteHandler = (deleteID, address) => {
+        dispatch(deleteUser(deleteID, address))
+            .then(() => {
+                dispatch(getAllComplains(currentUser._id, "Complain"));
+            })
     }
 
     const complainColumns = [
@@ -81,9 +91,14 @@ const SeeComplains = () => {
             };
         });
 
-    const ComplainButtonHaver = () => {
+    const ComplainButtonHaver = ({ row }) => {
         return (
-            <Checkbox {...label} />
+            <>
+                <Checkbox {...label} />
+                <IconButton onClick={() => deleteHandler(row.id, "Complain")}>
+                    <DeleteIcon color="error" />
+                </IconButton>
+            </>
         );
     };
 
