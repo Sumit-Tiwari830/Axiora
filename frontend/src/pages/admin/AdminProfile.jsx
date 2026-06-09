@@ -1,10 +1,20 @@
-import React from "react";
-import { useSelector } from "react-redux";
-import { Paper, Avatar, Divider } from "@mui/material";
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Paper, Avatar, Divider, Button, TextField, Box, Typography } from "@mui/material";
 import styled from "styled-components";
+import { updateUser } from "../../redux/userRelated/userHandle";
 
 const AdminProfile = () => {
     const { currentUser } = useSelector((state) => state.user);
+    const dispatch = useDispatch();
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [razorpayAccountId, setRazorpayAccountId] = useState(currentUser?.razorpayAccountId || "");
+
+    const handleSave = () => {
+        dispatch(updateUser({ razorpayAccountId }, currentUser._id, "Admin"));
+        setIsEditing(false);
+    };
 
     return (
         <PageWrapper>
@@ -47,6 +57,36 @@ const AdminProfile = () => {
                         <Label>Role</Label>
                         <Value>Administrator</Value>
                     </InfoCard>
+
+                    <InfoCard style={{ gridColumn: "1 / -1" }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                            <Label style={{ marginBottom: 0 }}>Razorpay Linked Account ID</Label>
+                            {!isEditing ? (
+                                <Button size="small" variant="outlined" onClick={() => setIsEditing(true)}>Edit</Button>
+                            ) : (
+                                <Box>
+                                    <Button size="small" onClick={() => setIsEditing(false)} sx={{ mr: 1 }}>Cancel</Button>
+                                    <Button size="small" variant="contained" onClick={handleSave}>Save</Button>
+                                </Box>
+                            )}
+                        </Box>
+                        
+                        {!isEditing ? (
+                            <Value>{currentUser?.razorpayAccountId || "Not configured"}</Value>
+                        ) : (
+                            <TextField 
+                                size="small" 
+                                fullWidth 
+                                variant="outlined"
+                                value={razorpayAccountId}
+                                onChange={(e) => setRazorpayAccountId(e.target.value)}
+                                placeholder="e.g. acc_1234567890"
+                            />
+                        )}
+                        <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 1 }}>
+                            Required to route student fee payments directly to the school's bank account via Razorpay Route.
+                        </Typography>
+                    </InfoCard>
                 </InfoGrid>
             </ProfileCard>
         </PageWrapper>
@@ -54,6 +94,8 @@ const AdminProfile = () => {
 };
 
 export default AdminProfile;
+
+
 
 const PageWrapper = styled.div`
   display: flex;

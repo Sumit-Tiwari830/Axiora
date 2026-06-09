@@ -7,14 +7,34 @@ const razorpayInstance = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_secret'
 });
 
+const Admin = require('../models/adminSchema.js');
+
 const createOrder = async (req, res) => {
     try {
-        const { amount, currency } = req.body;
+        const { amount, currency, schoolId } = req.body;
         const options = {
             amount: amount * 100, // amount in smallest currency unit
             currency: currency || "INR",
             receipt: `receipt_order_${Date.now()}`
         };
+
+        if (schoolId) {
+            const admin = await Admin.findById(schoolId);
+            if (admin && admin.razorpayAccountId) {
+                options.transfers = [
+                    {
+                        account: admin.razorpayAccountId,
+                        amount: amount * 100,
+                        currency: currency || "INR",
+                        notes: {
+                            branch: "Axiora School Platform"
+                        },
+                        linked_account_notes: ["branch"],
+                        on_hold: 0
+                    }
+                ];
+            }
+        }
 
         const order = await razorpayInstance.orders.create(options);
         res.json(order);

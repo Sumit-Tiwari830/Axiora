@@ -46,7 +46,8 @@ const StudentFee = () => {
         try {
             const orderRes = await axios.post(`${import.meta.env.VITE_REACT_APP_BASE_URL}/razorpay/order`, {
                 amount: fee.feeAmount,
-                currency: "INR"
+                currency: "INR",
+                schoolId: schoolId
             });
             const { id: order_id, amount, currency } = orderRes.data;
 
