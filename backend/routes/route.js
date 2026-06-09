@@ -7,6 +7,7 @@ const { adminRegister, adminLogIn, getAdminDetail } = require('../controllers/ad
 const { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents } = require('../controllers/class-controller.js');
 const { complainCreate, complainList, deleteComplain } = require('../controllers/complain-controller.js');
 const { noticeCreate, noticeList, deleteNotices, deleteNotice, updateNotice } = require('../controllers/notice-controller.js');
+const { createFee, getFeesList, getFeeDetails } = require('../controllers/fee-controller.js');
 const {
     studentRegister,
     studentLogIn,
@@ -106,6 +107,12 @@ router.get("/Sclass/Students/:id", getSclassStudents)
 
 router.delete("/Sclasses/:id", deleteSclasses)
 router.delete("/Sclass/:id", deleteSclass)
+
+// Fee
+
+router.post('/FeeCreate', createFee);
+router.get('/FeesList/:id', getFeesList);
+router.get('/Fee/:id', getFeeDetails);
 
 // Subject
 
