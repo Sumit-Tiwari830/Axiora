@@ -83,13 +83,19 @@ export const getUserDetails = (id, address) => async (dispatch) => {
     }
 };
 
-// Delete disabled intentionally
 export const deleteUser = (id, address) => async (dispatch) => {
     dispatch(getRequest());
 
-    dispatch(
-        getFailed("Sorry, delete functionality is currently disabled.")
-    );
+    try {
+        const { data } = await axios.delete(`${api}/${address}/${id}`);
+        if (data?.message) {
+            dispatch(getFailed(data.message));
+        } else {
+            dispatch(getDeleteSuccess());
+        }
+    } catch (err) {
+        dispatch(getError(err.response?.data?.message || err.message));
+    }
 };
 
 export const updateUser =

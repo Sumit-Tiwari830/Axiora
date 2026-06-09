@@ -2,11 +2,13 @@ const router = require('express').Router();
 
 // const { adminRegister, adminLogIn, deleteAdmin, getAdminDetail, updateAdmin } = require('../controllers/admin-controller.js');
 
-const { adminRegister, adminLogIn, getAdminDetail } = require('../controllers/admin-controller.js');
+const { adminRegister, adminLogIn, getAdminDetail, updateAdmin } = require('../controllers/admin-controller.js');
 
 const { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents } = require('../controllers/class-controller.js');
-const { complainCreate, complainList } = require('../controllers/complain-controller.js');
+const { complainCreate, complainList, deleteComplain } = require('../controllers/complain-controller.js');
 const { noticeCreate, noticeList, deleteNotices, deleteNotice, updateNotice } = require('../controllers/notice-controller.js');
+const { createFee, getFeesList, getFeeDetails } = require('../controllers/fee-controller.js');
+const { createOrder, verifyPayment } = require('../controllers/payment-controller.js');
 const {
     studentRegister,
     studentLogIn,
@@ -33,7 +35,7 @@ router.post('/AdminLogin', adminLogIn);
 router.get("/Admin/:id", getAdminDetail)
 // router.delete("/Admin/:id", deleteAdmin)
 
-// router.put("/Admin/:id", updateAdmin)
+router.put("/Admin/:id", updateAdmin)
 
 // Student
 
@@ -93,6 +95,8 @@ router.post('/ComplainCreate', complainCreate);
 
 router.get('/ComplainList/:id', complainList);
 
+router.delete("/Complain/:id", deleteComplain);
+
 // Sclass
 
 router.post('/SclassCreate', sclassCreate);
@@ -104,6 +108,16 @@ router.get("/Sclass/Students/:id", getSclassStudents)
 
 router.delete("/Sclasses/:id", deleteSclasses)
 router.delete("/Sclass/:id", deleteSclass)
+
+// Fee
+
+router.post('/FeeCreate', createFee);
+router.get('/FeesList/:id', getFeesList);
+router.get('/Fee/:id', getFeeDetails);
+
+// Payment (Razorpay)
+router.post('/razorpay/order', createOrder);
+router.post('/razorpay/verify', verifyPayment);
 
 // Subject
 

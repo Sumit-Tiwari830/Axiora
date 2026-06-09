@@ -54,7 +54,31 @@ const studentSchema = new mongoose.Schema({
             ref: 'subject',
             required: true
         }
-    }]
+    }],
+    feePayments: [
+        {
+            feeId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'fee'
+            },
+            amountPaid: {
+                type: Number,
+                default: 0
+            },
+            paymentDate: {
+                type: Date,
+                default: Date.now
+            },
+            status: {
+                type: String,
+                enum: ['Paid', 'Pending'],
+                default: 'Paid'
+            },
+            razorpayPaymentId: {
+                type: String
+            }
+        }
+    ]
 });
 
 module.exports = mongoose.model("student", studentSchema);

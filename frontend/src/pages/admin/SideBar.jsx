@@ -21,6 +21,7 @@ import {
     SupervisorAccountOutlined as SupervisorAccountOutlinedIcon,
     Report as ReportIcon,
     Assignment as AssignmentIcon,
+    Payment as PaymentIcon,
 } from "@mui/icons-material";
 
 const SideBar = () => {
@@ -189,6 +190,24 @@ const SideBar = () => {
                 </ListItemIcon>
                 <ListItemText
                     primary="Complaints"
+                    primaryTypographyProps={{ style: textStyle }}
+                />
+            </ListItemButton>
+
+            <ListItemButton
+                component={Link}
+                to="/Admin/fees"
+                sx={
+                    location.pathname.startsWith("/Admin/fees")
+                        ? activeStyle
+                        : {}
+                }
+            >
+                <ListItemIcon>
+                    <PaymentIcon sx={{ color: "#fff" }} />
+                </ListItemIcon>
+                <ListItemText
+                    primary="Fees"
                     primaryTypographyProps={{ style: textStyle }}
                 />
             </ListItemButton>
