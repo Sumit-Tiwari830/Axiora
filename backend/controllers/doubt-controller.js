@@ -11,8 +11,8 @@ const askDoubt = async (req, res) => {
         // Initialize Gemini with the API key from environment variables
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         
-        // Select the model, gemini-pro is universally available
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // Select the model, using gemini-flash-latest which is highly capable and fast
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // System prompt to define the friendly tutor persona
         const systemPrompt = `You are an AI Doubt Solver integrated into the Axiora School Management System. 
