@@ -41,26 +41,18 @@ const ChooseSubject = ({ situation }) => {
         response,
     } = useSelector((state) => state.sclass);
 
+    const { id, classID: routeClassID, teacherID: routeTeacherID } = params;
+
     useEffect(() => {
         if (situation === "Norm") {
-            const classID = params.id;
-
-            setClassID(classID);
-
-            dispatch(
-                getTeacherFreeClassSubjects(classID)
-            );
+            setClassID(id);
+            dispatch(getTeacherFreeClassSubjects(id));
         } else if (situation === "Teacher") {
-            const { classID, teacherID } = params;
-
-            setClassID(classID);
-            setTeacherID(teacherID);
-
-            dispatch(
-                getTeacherFreeClassSubjects(classID)
-            );
+            setClassID(routeClassID);
+            setTeacherID(routeTeacherID);
+            dispatch(getTeacherFreeClassSubjects(routeClassID));
         }
-    }, [dispatch, params, situation]);
+    }, [dispatch, id, routeClassID, routeTeacherID, situation]);
 
     if (loading) {
         return (

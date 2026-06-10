@@ -51,36 +51,18 @@ const StudentExamMarks = ({ situation }) => {
     const [message, setMessage] = useState("");
     const [loader, setLoader] = useState(false);
 
+    const { id, studentID: routeStudentID, subjectID: routeSubjectID } = params;
+
     useEffect(() => {
         if (situation === "Student") {
-            const stdID = params.id;
-
-            setStudentID(stdID);
-
-            dispatch(
-                getUserDetails(
-                    stdID,
-                    "Student"
-                )
-            );
+            setStudentID(id);
+            dispatch(getUserDetails(id, "Student"));
         } else if (situation === "Subject") {
-            const {
-                studentID,
-                subjectID,
-            } = params;
-
-            setStudentID(studentID);
-
-            dispatch(
-                getUserDetails(
-                    studentID,
-                    "Student"
-                )
-            );
-
-            setChosenSubName(subjectID);
+            setStudentID(routeStudentID);
+            dispatch(getUserDetails(routeStudentID, "Student"));
+            setChosenSubName(routeSubjectID);
         }
-    }, [dispatch, params, situation]);
+    }, [dispatch, id, routeStudentID, routeSubjectID, situation]);
 
     useEffect(() => {
         if (
