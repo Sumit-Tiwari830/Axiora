@@ -31,6 +31,8 @@ const AddNotice = () => {
     const [title, setTitle] = useState("");
     const [details, setDetails] = useState("");
     const [date, setDate] = useState("");
+    const [attachment, setAttachment] = useState(null);
+    const [attachmentName, setAttachmentName] = useState("");
     
     const [isGlobal, setIsGlobal] = useState(true);
     const [targetClasses, setTargetClasses] = useState([]);
@@ -53,10 +55,32 @@ const AddNotice = () => {
         date,
         adminID,
         isGlobal,
-        targetClasses
+        targetClasses,
+        attachment,
+        attachmentName
     };
 
     const address = "Notice";
+
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setMessage("File size exceeds 5MB limit.");
+                setShowPopup(true);
+                event.target.value = null; // Reset file input
+                setAttachment(null);
+                setAttachmentName("");
+                return;
+            }
+            setAttachmentName(file.name);
+            const reader = new FileReader();
+            reader.onload = () => {
+                setAttachment(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const submitHandler = (event) => {
         event.preventDefault();
@@ -233,6 +257,37 @@ const AddNotice = () => {
                                     />
                                 ))}
                             </FormGroup>
+                        </Box>
+
+                        <Box sx={{ mt: 3, mb: 1 }}>
+                            <FormLabel component="legend" sx={{ mb: 1 }}>Attachment (Optional)</FormLabel>
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                sx={{
+                                    textTransform: "none",
+                                    borderRadius: "10px",
+                                    borderColor: "#7c3aed",
+                                    color: "#7c3aed",
+                                    "&:hover": {
+                                        borderColor: "#6d28d9",
+                                        backgroundColor: "rgba(124, 58, 237, 0.04)"
+                                    }
+                                }}
+                            >
+                                Choose File (PDF/Image/Doc)
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept=".pdf,image/*,.doc,.docx"
+                                    onChange={handleFileChange}
+                                />
+                            </Button>
+                            {attachmentName && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, ml: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                                    📎 {attachmentName}
+                                </Typography>
+                            )}
                         </Box>
 
                         <Button

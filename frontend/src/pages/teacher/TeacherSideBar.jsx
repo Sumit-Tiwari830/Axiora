@@ -10,7 +10,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import { Home as HomeIcon, ExitToApp as ExitToAppIcon, AccountCircleOutlined as AccountCircleOutlinedIcon, AnnouncementOutlined as AnnouncementOutlinedIcon, ClassOutlined as ClassOutlinedIcon } from '@mui/icons-material';
+import { Home as HomeIcon, ExitToApp as ExitToAppIcon, AccountCircleOutlined as AccountCircleOutlinedIcon, AnnouncementOutlined as AnnouncementOutlinedIcon, ClassOutlined as ClassOutlinedIcon, VideoCallOutlined as VideoCallOutlinedIcon } from '@mui/icons-material';
 
 const TeacherSideBar = () => {
     const location = useLocation();
@@ -64,6 +64,25 @@ const TeacherSideBar = () => {
                     <ListItemText
                         primary={`Class ${className}`}
                     />
+                </ListItemButton>
+
+                <ListItemButton
+                    component={Link}
+                    to="/Teacher/meeting"
+                >
+                    <ListItemIcon>
+                        <VideoCallOutlinedIcon
+                            color={
+                                location.pathname.startsWith(
+                                    "/Teacher/meeting"
+                                )
+                                    ? "primary"
+                                    : "inherit"
+                            }
+                        />
+                    </ListItemIcon>
+
+                    <ListItemText primary="Live Class" />
                 </ListItemButton>
 
                 <ListItemButton

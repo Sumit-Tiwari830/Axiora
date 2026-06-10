@@ -8,6 +8,7 @@ import {
     IconButton,
     CircularProgress,
     Typography,
+    Button,
 } from "@mui/material";
 
 import { NoteAdd as NoteAddIcon, Delete as DeleteIcon } from '@mui/icons-material';
@@ -76,6 +77,11 @@ const ShowNotices = () => {
         {
             id: "date",
             label: "Date",
+            minWidth: 120,
+        },
+        {
+            id: "attachment",
+            label: "Attachment",
             minWidth: 150,
         },
     ];
@@ -90,6 +96,29 @@ const ShowNotices = () => {
                     .split("T")[0]
                 : "N/A",
             id: notice._id,
+            attachment: notice.attachment ? (
+                <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{
+                        textTransform: "none",
+                        borderColor: "#7c3aed",
+                        color: "#7c3aed",
+                        "&:hover": {
+                            borderColor: "#6d28d9",
+                            backgroundColor: "rgba(124, 58, 237, 0.04)"
+                        }
+                    }}
+                    onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = notice.attachment;
+                        link.download = notice.attachmentName || "attachment";
+                        link.click();
+                    }}
+                >
+                    Download
+                </Button>
+            ) : "No attachment",
         })) || [];
 
     const NoticeButtonHaver = ({ row }) => (

@@ -5,6 +5,7 @@ import {
     Typography,
     Box,
     CircularProgress,
+    Button,
 } from "@mui/material";
 
 import { getAllNotices } from "../redux/noticeRelated/noticeHandle";
@@ -61,6 +62,11 @@ const SeeNotice = () => {
         {
             id: "date",
             label: "Date",
+            minWidth: 120,
+        },
+        {
+            id: "attachment",
+            label: "Attachment",
             minWidth: 150,
         },
     ];
@@ -77,6 +83,29 @@ const SeeNotice = () => {
                         ? date.toISOString().substring(0, 10)
                         : "Invalid Date",
                 id: notice._id,
+                attachment: notice.attachment ? (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                            textTransform: "none",
+                            borderColor: "#7c3aed",
+                            color: "#7c3aed",
+                            "&:hover": {
+                                borderColor: "#6d28d9",
+                                backgroundColor: "rgba(124, 58, 237, 0.04)"
+                            }
+                        }}
+                        onClick={() => {
+                            const link = document.createElement("a");
+                            link.href = notice.attachment;
+                            link.download = notice.attachmentName || "attachment";
+                            link.click();
+                        }}
+                    >
+                        Download
+                    </Button>
+                ) : "-",
             };
         }) || [];
 
