@@ -16,8 +16,9 @@ import {
     CircularProgress,
     Chip
 } from "@mui/material";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
+import { authSuccess } from "../../../redux/userRelated/userSlice";
 
 const StudentProfile = () => {
     const {
@@ -25,6 +26,8 @@ const StudentProfile = () => {
         response,
         error,
     } = useSelector((state) => state.user);
+
+    const dispatch = useDispatch();
 
     const [emailInput, setEmailInput] = useState("");
     const [otpInput, setOtpInput] = useState("");
@@ -59,7 +62,11 @@ const StudentProfile = () => {
             });
             setMessage(res.data.message);
             setShowOtpDialog(false);
-            window.location.reload();
+            
+            // Update the user in Redux and localStorage
+            const updatedUser = { ...currentUser, ...res.data.student };
+            dispatch(authSuccess(updatedUser));
+            
         } catch (err) {
             console.error(err);
             setMessage("Invalid OTP or Expired");
