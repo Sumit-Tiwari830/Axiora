@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
-import { authSuccess } from "../../../redux/userRelated/userSlice";
+import { authSuccess } from "../../redux/userRelated/userSlice";
 
 const StudentProfile = () => {
     const {
