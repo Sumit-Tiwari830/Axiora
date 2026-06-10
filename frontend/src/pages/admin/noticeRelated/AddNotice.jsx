@@ -9,7 +9,13 @@ import {
     TextField,
     Button,
     CircularProgress,
+    FormControlLabel,
+    Checkbox,
+    FormGroup,
+    FormLabel
 } from '@mui/material';
+
+import { getAllSclasses } from '../../../redux/sclassRelated/sclassHandle';
 
 import { addStuff } from '../../../redux/userRelated/userHandle';
 import { underControl } from '../../../redux/userRelated/userSlice';
@@ -25,8 +31,13 @@ const AddNotice = () => {
     const [title, setTitle] = useState("");
     const [details, setDetails] = useState("");
     const [date, setDate] = useState("");
+    
+    const [isGlobal, setIsGlobal] = useState(true);
+    const [targetClasses, setTargetClasses] = useState([]);
 
     const [loader, setLoader] = useState(false);
+
+    const { sclassesList } = useSelector((state) => state.sclass);
 
     const [showPopup, setShowPopup] =
         useState(false);
@@ -41,6 +52,8 @@ const AddNotice = () => {
         details,
         date,
         adminID,
+        isGlobal,
+        targetClasses
     };
 
     const address = "Notice";
@@ -53,6 +66,25 @@ const AddNotice = () => {
         dispatch(
             addStuff(fields, address)
         );
+    };
+
+    useEffect(() => {
+        dispatch(getAllSclasses(adminID, "Sclass"));
+    }, [adminID, dispatch]);
+
+    const handleClassChange = (event) => {
+        const value = event.target.value;
+        if (value === "all") {
+            setIsGlobal(event.target.checked);
+            if (event.target.checked) setTargetClasses([]);
+        } else {
+            if (event.target.checked) {
+                setTargetClasses([...targetClasses, value]);
+                setIsGlobal(false);
+            } else {
+                setTargetClasses(targetClasses.filter(id => id !== value));
+            }
+        }
     };
 
     useEffect(() => {
@@ -172,6 +204,36 @@ const AddNotice = () => {
                             }
                             required
                         />
+
+                        <Box sx={{ mt: 2, mb: 2 }}>
+                            <FormLabel component="legend">Target Classes</FormLabel>
+                            <FormGroup row>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={isGlobal}
+                                            onChange={handleClassChange}
+                                            value="all"
+                                        />
+                                    }
+                                    label="All Classes"
+                                />
+                                {sclassesList && sclassesList.map((sclass) => (
+                                    <FormControlLabel
+                                        key={sclass._id}
+                                        control={
+                                            <Checkbox
+                                                checked={targetClasses.includes(sclass._id)}
+                                                onChange={handleClassChange}
+                                                value={sclass._id}
+                                                disabled={isGlobal}
+                                            />
+                                        }
+                                        label={sclass.sclassName}
+                                    />
+                                ))}
+                            </FormGroup>
+                        </Box>
 
                         <Button
                             type="submit"
