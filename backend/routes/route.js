@@ -27,6 +27,7 @@ const {
 const { subjectCreate, classSubjects, deleteSubjectsByClass, getSubjectDetail, deleteSubject, freeSubjectList, allSubjects, deleteSubjects } = require('../controllers/subject-controller.js');
 const { teacherRegister, teacherLogIn, getTeachers, getTeacherDetail, deleteTeachers, deleteTeachersByClass, deleteTeacher, updateTeacherSubject, teacherAttendance } = require('../controllers/teacher-controller.js');
 const { askDoubt } = require('../controllers/doubt-controller.js');
+const { addEmail, verifyEmail } = require('../controllers/email-controller.js');
 
 // Admin
 router.post('/AdminReg', adminRegister);
@@ -42,6 +43,8 @@ router.put("/Admin/:id", updateAdmin)
 router.post('/StudentReg', studentRegister);
 router.post('/StudentLogin', studentLogIn)
 router.post('/Student/AskDoubt', askDoubt);
+router.post('/StudentAddEmail', addEmail);
+router.post('/StudentVerifyEmail', verifyEmail);
 
 router.get("/Students/:id", getStudents)
 router.get("/Student/:id", getStudentDetail)

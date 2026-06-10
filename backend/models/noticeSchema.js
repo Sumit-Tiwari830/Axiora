@@ -17,6 +17,14 @@ const noticeSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'admin'
     },
+    isGlobal: {
+        type: Boolean,
+        default: false
+    },
+    targetClasses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'sclass'
+    }],
 }, { timestamps: true });
 
 module.exports = mongoose.model("notice", noticeSchema)
