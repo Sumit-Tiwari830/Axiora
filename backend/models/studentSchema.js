@@ -27,6 +27,22 @@ const studentSchema = new mongoose.Schema({
         type: String,
         default: "Student"
     },
+    email: {
+        type: String,
+        default: null
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: {
+        type: String,
+        default: null
+    },
+    otpExpiry: {
+        type: Date,
+        default: null
+    },
     examResult: [
         {
             subName: {
