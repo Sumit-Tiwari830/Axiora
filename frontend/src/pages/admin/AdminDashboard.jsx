@@ -9,12 +9,13 @@ import {
     IconButton,
 } from '@mui/material';
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppBar, Drawer } from '../../components/styles';
 import Logout from '../Logout';
 import SideBar from './SideBar';
 import AdminProfile from './AdminProfile';
 import AdminHomePage from './AdminHomePage';
+import MeetingRoom from '../../pages/MeetingRoom';
 
 import AddStudent from './studentRelated/AddStudent';
 import SeeComplains from './studentRelated/SeeComplains';
@@ -46,10 +47,19 @@ import ViewFee from './feeRelated/ViewFee';
 
 const AdminDashboard = () => {
     const [open, setOpen] = useState(true);
+    const location = useLocation();
 
     const toggleDrawer = () => {
         setOpen(!open);
     };
+
+    if (location.pathname.startsWith("/meeting/")) {
+        return (
+            <Routes>
+                <Route path="/meeting/:roomId" element={<MeetingRoom />} />
+            </Routes>
+        );
+    }
 
     return (
         <Box sx={{ display: 'flex' }}>
