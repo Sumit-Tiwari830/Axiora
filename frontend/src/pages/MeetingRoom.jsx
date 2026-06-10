@@ -3,18 +3,15 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
     Box,
-    Paper,
     Typography,
     Button,
     IconButton,
-    Grid,
     CircularProgress,
     TextField,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
-    Drawer,
     List,
     ListItem,
     ListItemText,
@@ -37,66 +34,83 @@ import {
     People as PeopleIcon,
     Send as SendIcon,
     Close as CloseIcon,
-    FiberManualRecord as RecordIcon
+    FiberManualRecord as RecordIcon,
+    StopCircle as StopCircleIcon
 } from "@mui/icons-material";
 import { io } from "socket.io-client";
 
+// STUN servers for NAT traversal
 const ICE_SERVERS = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" }
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" }
     ]
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  MeetingRoom Component
+// ─────────────────────────────────────────────────────────────────────────────
 const MeetingRoom = () => {
     const { roomId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { currentUser, currentRole } = useSelector((s) => s.user);
 
-    const { currentUser, currentRole } = useSelector((state) => state.user);
-
-    // Get passcode from query string (sent by teacher redirect or student invite)
     const searchParams = new URLSearchParams(location.search);
     const initialPass = searchParams.get("pass") || "";
 
-    // ── Auth State ──────────────────────────────────────────────────────────────
+    // ── Auth ─────────────────────────────────────────────────────
     const [passwordInput, setPasswordInput] = useState("");
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(!initialPass);
     const [joinError, setJoinError] = useState("");
-    const [isJoining, setIsJoining] = useState(false);
-    const [roomPassword] = useState(initialPass);
+    const [hasJoined, setHasJoined] = useState(false);
 
-    // ── Media State ────────────────────────────────────────────────────────────
+    // ── Media ────────────────────────────────────────────────────
     const [localStream, setLocalStream] = useState(null);
-    const [remotePeers, setRemotePeers] = useState([]);
+    const [peers, setPeers] = useState([]); // [{ socketId, userName, role, stream }]
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
 
-    // ── UI State ───────────────────────────────────────────────────────────────
+    // ── Class Ended State ─────────────────────────────────────────
+    const [classEnded, setClassEnded] = useState(false);
+    const [classEndedInfo, setClassEndedInfo] = useState(null);
+    const [showEndConfirm, setShowEndConfirm] = useState(false);
+
+    // ── UI ───────────────────────────────────────────────────────
     const [sidePanel, setSidePanel] = useState(null); // null | "chat" | "people"
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState("");
     const [unreadChat, setUnreadChat] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [isConnecting, setIsConnecting] = useState(false);
 
-    // ── Refs ───────────────────────────────────────────────────────────────────
+    // ── Refs ─────────────────────────────────────────────────────
     const socketRef = useRef(null);
     const localVideoRef = useRef(null);
-    const peerConnections = useRef({});
+    const peerConnections = useRef({});     // socketId → RTCPeerConnection
     const localStreamRef = useRef(null);
     const screenStreamRef = useRef(null);
     const chatEndRef = useRef(null);
     const timerRef = useRef(null);
+    const candidateQueue = useRef({});      // socketId → [RTCIceCandidate]
 
-    // ── Duration Timer ─────────────────────────────────────────────────────────
+    // Assign local stream to video element whenever either changes
     useEffect(() => {
-        if (localStream) {
+        if (localVideoRef.current && localStream) {
+            localVideoRef.current.srcObject = localStream;
+        }
+    }, [localStream, hasJoined]);
+
+    // Duration timer starts when connected
+    useEffect(() => {
+        if (hasJoined) {
             timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
         }
         return () => clearInterval(timerRef.current);
-    }, [localStream]);
+    }, [hasJoined]);
 
     const formatDuration = (s) => {
         const h = Math.floor(s / 3600);
@@ -106,31 +120,32 @@ const MeetingRoom = () => {
         return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     };
 
-    // ── Get local media ────────────────────────────────────────────────────────
+    // ── Acquire local media ────────────────────────────────────────
     const startLocalStream = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             localStreamRef.current = stream;
             setLocalStream(stream);
-            if (localVideoRef.current) localVideoRef.current.srcObject = stream;
             return stream;
         } catch (err) {
-            console.warn("Camera failed, trying audio only:", err);
+            console.warn("Camera+Audio failed, trying audio only:", err.name, err.message);
             try {
                 const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStreamRef.current = audioStream;
                 setLocalStream(audioStream);
+                setIsVideoOff(true);
                 return audioStream;
-            } catch (fallbackErr) {
-                console.error("Audio fallback failed:", fallbackErr);
-                setJoinError("Failed to access camera or microphone. Please check browser permissions.");
+            } catch (audioErr) {
+                console.error("Audio also failed:", audioErr);
+                setJoinError("Cannot access camera or microphone. Check browser permissions and try again.");
                 return null;
             }
         }
     };
 
-    // ── Create RTCPeerConnection ───────────────────────────────────────────────
-    const createPeerConnection = useCallback((socketId, userName, role, stream) => {
+    // ── Create RTCPeerConnection ───────────────────────────────────
+    const createPC = useCallback((socketId, userName, role) => {
+        // Avoid duplicate connections
         if (peerConnections.current[socketId]) {
             return peerConnections.current[socketId];
         }
@@ -138,246 +153,411 @@ const MeetingRoom = () => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
         peerConnections.current[socketId] = pc;
 
-        // Add local tracks
+        // Add ALL local tracks to this connection
+        const stream = localStreamRef.current;
         if (stream) {
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+            stream.getTracks().forEach((track) => {
+                pc.addTrack(track, stream);
+            });
         }
 
-        // ICE candidates
-        pc.onicecandidate = (event) => {
-            if (event.candidate && socketRef.current?.connected) {
+        // Send ICE candidates to the peer
+        pc.onicecandidate = ({ candidate }) => {
+            if (candidate && socketRef.current?.connected) {
                 socketRef.current.emit("signal", {
                     to: socketId,
-                    signal: { type: "candidate", candidate: event.candidate }
+                    signal: { type: "candidate", candidate }
                 });
             }
         };
 
-        // Remote track received
+        // When we receive a remote media track
         pc.ontrack = (event) => {
+            console.log(`[WebRTC] Received remote track:`, event.track.kind, `from`, userName);
             const remoteStream = event.streams[0];
-            setRemotePeers((prev) => {
-                const exists = prev.find((p) => p.socketId === socketId);
-                if (exists) {
-                    return prev.map((p) => p.socketId === socketId ? { ...p, stream: remoteStream } : p);
+            if (!remoteStream) return;
+            setPeers((prev) => {
+                const existing = prev.find((p) => p.socketId === socketId);
+                // Create a new stream instance containing all tracks of remoteStream
+                // to guarantee a reference change in React state.
+                const streamCopy = new MediaStream(remoteStream.getTracks());
+                if (existing) {
+                    return prev.map((p) =>
+                        p.socketId === socketId ? { ...p, stream: streamCopy } : p
+                    );
                 }
-                return [...prev, { socketId, userName, role, stream: remoteStream }];
+                return [...prev, { 
+                    socketId, 
+                    userName, 
+                    role, 
+                    stream: streamCopy, 
+                    isMuted: false, 
+                    isVideoOff: false 
+                }];
             });
         };
 
         pc.onconnectionstatechange = () => {
-            console.log(`PC [${socketId}] state: ${pc.connectionState}`);
+            console.log(`[PC] ${userName} → ${pc.connectionState}`);
+            if (pc.connectionState === "failed") {
+                pc.restartIce();
+            }
         };
 
         return pc;
     }, []);
 
-    // ── Initialize Socket + WebRTC ─────────────────────────────────────────────
+    // ── Socket.io + WebRTC Init ────────────────────────────────────
     const initMeeting = useCallback(async (passVal) => {
+        setIsConnecting(true);
+
         const stream = await startLocalStream();
-        if (!stream) return;
+        if (!stream) {
+            setIsConnecting(false);
+            return;
+        }
 
-        const socketUrl = (import.meta.env.VITE_REACT_APP_BASE_URL || "http://localhost:5000/api").replace("/api", "");
-        socketRef.current = io(socketUrl, { transports: ["websocket", "polling"] });
+        const baseUrl = (import.meta.env.VITE_REACT_APP_BASE_URL || "http://localhost:5000/api")
+            .replace("/api", "")
+            .replace(/\/$/, "");
 
-        socketRef.current.on("connect", () => {
-            console.log("Socket connected:", socketRef.current.id);
-            // Join room after connection
-            socketRef.current.emit("join-room", {
+        const socket = io(baseUrl, {
+            transports: ["websocket", "polling"],
+            reconnectionAttempts: 3
+        });
+        socketRef.current = socket;
+
+        // ── Connection established ──────────────────────────────
+        socket.on("connect", () => {
+            console.log("[Socket] Connected:", socket.id);
+            socket.emit("join-room", {
                 roomId,
                 password: passVal,
                 userId: currentUser._id,
                 userName: currentUser.name,
-                role: currentRole
+                role: currentRole,
+                isMuted,
+                isVideoOff
             });
         });
 
-        socketRef.current.on("connect_error", (err) => {
-            console.error("Socket connection error:", err);
-            setJoinError("Could not connect to meeting server. Please try again.");
-            setIsJoining(false);
+        socket.on("connect_error", (err) => {
+            console.error("[Socket] Connection error:", err.message);
+            setJoinError("Cannot connect to the meeting server. Is the backend running?");
+            setIsConnecting(false);
         });
 
-        // Password error
-        socketRef.current.on("join-error", (msg) => {
-            setJoinError(msg || "Invalid meeting password.");
-            setIsJoining(false);
+        // ── Room join errors ────────────────────────────────────
+        socket.on("join-error", (msg) => {
+            setJoinError(msg);
+            setIsConnecting(false);
             setIsPasswordModalOpen(true);
-            socketRef.current.disconnect();
+            socket.disconnect();
         });
 
-        // Existing users in room → we initiate offers to them
-        socketRef.current.on("all-users", (users) => {
+        // ── Class already ended ─────────────────────────────────
+        socket.on("class-ended", ({ endedBy, endedAt }) => {
+            setClassEnded(true);
+            setClassEndedInfo({ endedBy, endedAt });
+            setIsConnecting(false);
+            clearInterval(timerRef.current);
+            // Stop all local media
+            localStreamRef.current?.getTracks().forEach((t) => t.stop());
+            // Close all peer connections
+            Object.values(peerConnections.current).forEach((pc) => pc.close());
+            peerConnections.current = {};
+            setPeers([]);
+        });
+
+        // ── Existing users in room → I create offer to each ────
+        socket.on("all-users", (users) => {
+            console.log("[Socket] Existing users:", users.length);
+            setHasJoined(true);
+            setIsConnecting(false);
+
             users.forEach(async (user) => {
-                const pc = createPeerConnection(user.socketId, user.userName, user.role, localStreamRef.current);
+                const pc = createPC(user.socketId, user.userName, user.role);
+                // Add this peer placeholder immediately
+                setPeers((prev) => {
+                    if (!prev.find((p) => p.socketId === user.socketId)) {
+                        return [...prev, { 
+                            socketId: user.socketId, 
+                            userName: user.userName, 
+                            role: user.role, 
+                            stream: null,
+                            isMuted: user.isMuted || false,
+                            isVideoOff: user.isVideoOff || false
+                        }];
+                    }
+                    return prev;
+                });
                 try {
-                    const offer = await pc.createOffer();
+                    const offer = await pc.createOffer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: true
+                    });
                     await pc.setLocalDescription(offer);
-                    socketRef.current.emit("signal", {
+                    socket.emit("signal", {
                         to: user.socketId,
                         signal: { type: "offer", sdp: offer }
                     });
                 } catch (err) {
-                    console.error("Error creating offer:", err);
+                    console.error("[WebRTC] Error creating offer:", err);
                 }
             });
+
+            // If no one else is in the room yet, we're still connected
+            if (users.length === 0) {
+                console.log("[Meeting] Waiting for others to join...");
+            }
         });
 
-        // Signaling handler
-        socketRef.current.on("signal", async ({ from, signal, fromUserName, fromRole }) => {
+        // ── Signaling: receive offer / answer / candidate ───────
+        socket.on("signal", async ({ from, signal, fromUserName, fromRole }) => {
             if (signal.type === "offer") {
+                // Someone sent us an offer — create PC, answer it
                 let pc = peerConnections.current[from];
                 if (!pc) {
-                    pc = createPeerConnection(from, fromUserName || "Peer", fromRole || "Student", localStreamRef.current);
+                    pc = createPC(from, fromUserName || "Peer", fromRole || "Student");
+                    // Add placeholder for the incoming peer
+                    setPeers((prev) => {
+                        if (!prev.find((p) => p.socketId === from)) {
+                            return [...prev, { 
+                                socketId: from, 
+                                userName: fromUserName || "Peer", 
+                                role: fromRole || "Student", 
+                                stream: null,
+                                isMuted: false,
+                                isVideoOff: false
+                            }];
+                        }
+                        return prev;
+                    });
                 }
                 try {
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    
+                    // Process queued candidates for this peer
+                    if (candidateQueue.current[from]) {
+                        for (const cand of candidateQueue.current[from]) {
+                            try {
+                                await pc.addIceCandidate(new RTCIceCandidate(cand));
+                            } catch (e) {
+                                console.warn("[WebRTC] Error adding queued ICE candidate:", e);
+                            }
+                        }
+                        delete candidateQueue.current[from];
+                    }
+
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
-                    socketRef.current.emit("signal", { to: from, signal: { type: "answer", sdp: answer } });
+                    socket.emit("signal", {
+                        to: from,
+                        signal: { type: "answer", sdp: answer }
+                    });
                 } catch (err) {
-                    console.error("Error handling offer:", err);
+                    console.error("[WebRTC] Error handling offer:", err);
                 }
+
             } else if (signal.type === "answer") {
                 const pc = peerConnections.current[from];
                 if (pc) {
                     try {
                         await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                        
+                        // Process queued candidates for this peer
+                        if (candidateQueue.current[from]) {
+                            for (const cand of candidateQueue.current[from]) {
+                                try {
+                                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                                } catch (e) {
+                                    console.warn("[WebRTC] Error adding queued ICE candidate:", e);
+                                }
+                            }
+                            delete candidateQueue.current[from];
+                        }
                     } catch (err) {
-                        console.error("Error setting answer:", err);
+                        console.error("[WebRTC] Error setting answer:", err);
                     }
                 }
+
             } else if (signal.type === "candidate") {
                 const pc = peerConnections.current[from];
                 if (pc && signal.candidate) {
-                    try {
-                        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-                    } catch (e) {
-                        // Ignore non-fatal ICE errors
+                    if (pc.remoteDescription && pc.remoteDescription.type) {
+                        try {
+                            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                        } catch (e) {
+                            // ICE candidate errors are usually non-fatal
+                        }
+                    } else {
+                        // Queue the candidate until remote description is set
+                        if (!candidateQueue.current[from]) {
+                            candidateQueue.current[from] = [];
+                        }
+                        candidateQueue.current[from].push(signal.candidate);
                     }
                 }
             }
         });
 
-        // New user joins — they'll offer to us; we just create a slot
-        socketRef.current.on("user-joined", ({ socketId, userName, role }) => {
-            console.log(`Peer joined: ${userName}`);
-            // Don't proactively create PC here; wait for their offer
-            setRemotePeers((prev) => {
+        // ── New user joined the room ────────────────────────────
+        socket.on("user-joined", ({ socketId, userName, role, isMuted, isVideoOff }) => {
+            console.log("[Meeting] New user joined:", userName);
+            // They will send us an offer, so just add a placeholder
+            setPeers((prev) => {
                 if (!prev.find((p) => p.socketId === socketId)) {
-                    return [...prev, { socketId, userName, role, stream: null }];
+                    return [...prev, { 
+                        socketId, 
+                        userName, 
+                        role, 
+                        stream: null, 
+                        isMuted: isMuted || false, 
+                        isVideoOff: isVideoOff || false 
+                    }];
                 }
                 return prev;
             });
         });
 
-        // User left
-        socketRef.current.on("user-left", (socketId) => {
+        // ── Peer mute / video toggles ───────────────────────────
+        socket.on("peer-mute-toggle", ({ socketId, isMuted }) => {
+            setPeers((prev) =>
+                prev.map((p) => (p.socketId === socketId ? { ...p, isMuted } : p))
+            );
+        });
+
+        socket.on("peer-video-toggle", ({ socketId, isVideoOff }) => {
+            setPeers((prev) =>
+                prev.map((p) => (p.socketId === socketId ? { ...p, isVideoOff } : p))
+            );
+        });
+
+        // ── User disconnected ───────────────────────────────────
+        socket.on("user-left", (socketId) => {
+            console.log("[Meeting] User left:", socketId);
             if (peerConnections.current[socketId]) {
                 peerConnections.current[socketId].close();
                 delete peerConnections.current[socketId];
             }
-            setRemotePeers((prev) => prev.filter((p) => p.socketId !== socketId));
+            delete candidateQueue.current[socketId];
+            setPeers((prev) => prev.filter((p) => p.socketId !== socketId));
         });
 
-        // Chat messages
-        socketRef.current.on("chat-message", (msg) => {
+        // ── Chat ────────────────────────────────────────────────
+        socket.on("chat-message", (msg) => {
             setChatMessages((prev) => [...prev, msg]);
-            setSidePanel((panel) => {
-                if (panel !== "chat") setUnreadChat((n) => n + 1);
-                return panel;
+            setSidePanel((current) => {
+                if (current !== "chat") {
+                    setUnreadChat((n) => n + 1);
+                }
+                return current;
             });
         });
 
-    }, [roomId, currentUser, currentRole, createPeerConnection]);
+    }, [roomId, currentUser, currentRole, createPC, isMuted, isVideoOff]);
 
-    // Trigger join flow
+    // ── Entry point ────────────────────────────────────────────────
     useEffect(() => {
         if (initialPass) {
-            // Auto-join with password from URL
-            setIsJoining(true);
             initMeeting(initialPass);
         }
-        return () => cleanup();
-    }, []); // eslint-disable-line
+        return () => doCleanup();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const cleanup = () => {
+    const doCleanup = () => {
         clearInterval(timerRef.current);
-        if (socketRef.current) socketRef.current.disconnect();
+        socketRef.current?.disconnect();
         Object.values(peerConnections.current).forEach((pc) => pc.close());
         peerConnections.current = {};
-        if (localStreamRef.current) localStreamRef.current.getTracks().forEach((t) => t.stop());
-        if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        candidateQueue.current = {};
+        localStreamRef.current?.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
 
-    // ── Password Submit ────────────────────────────────────────────────────────
+    // ── Password submit ────────────────────────────────────────────
     const handlePasswordSubmit = () => {
         const pass = passwordInput.trim();
         if (!pass) { setJoinError("Password is required."); return; }
         setJoinError("");
         setIsPasswordModalOpen(false);
-        setIsJoining(true);
         initMeeting(pass);
     };
 
-    // ── Leave Meeting ──────────────────────────────────────────────────────────
+    // ── Leave ──────────────────────────────────────────────────────
     const leaveMeeting = () => {
-        cleanup();
+        doCleanup();
         navigate(currentRole === "Teacher" ? "/Teacher/dashboard" : "/Student/dashboard");
     };
 
-    // ── Toggle Mute ────────────────────────────────────────────────────────────
+    // ── End class (teacher/admin only) ─────────────────────────────
+    const confirmEndClass = () => {
+        if (socketRef.current?.connected) {
+            socketRef.current.emit("end-class", { roomId });
+        }
+        setShowEndConfirm(false);
+    };
+
+    // ── Toggle Mute ────────────────────────────────────────────────
     const toggleMute = () => {
-        const audioTrack = localStreamRef.current?.getAudioTracks()[0];
-        if (audioTrack) {
-            audioTrack.enabled = !audioTrack.enabled;
-            setIsMuted(!audioTrack.enabled);
+        const track = localStreamRef.current?.getAudioTracks()[0];
+        if (track) {
+            track.enabled = !track.enabled;
+            const newMuted = !track.enabled;
+            setIsMuted(newMuted);
+            socketRef.current?.emit("toggle-mute", { roomId, isMuted: newMuted });
         }
     };
 
-    // ── Toggle Video ───────────────────────────────────────────────────────────
+    // ── Toggle Video ───────────────────────────────────────────────
     const toggleVideo = () => {
-        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.enabled = !videoTrack.enabled;
-            setIsVideoOff(!videoTrack.enabled);
+        const track = localStreamRef.current?.getVideoTracks()[0];
+        if (track) {
+            track.enabled = !track.enabled;
+            const newVideoOff = !track.enabled;
+            setIsVideoOff(newVideoOff);
+            socketRef.current?.emit("toggle-video", { roomId, isVideoOff: newVideoOff });
         }
     };
 
-    // ── Toggle Screen Share ────────────────────────────────────────────────────
+    // ── Screen Share ───────────────────────────────────────────────
     const toggleScreenShare = async () => {
         if (isScreenSharing) {
-            if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
+            screenStreamRef.current?.getTracks().forEach((t) => t.stop());
             screenStreamRef.current = null;
             setIsScreenSharing(false);
-            const camVideoTrack = localStreamRef.current?.getVideoTracks()[0];
+            const camTrack = localStreamRef.current?.getVideoTracks()[0];
             Object.values(peerConnections.current).forEach((pc) => {
-                const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
-                if (videoSender && camVideoTrack) videoSender.replaceTrack(camVideoTrack);
+                const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+                if (sender && camTrack) sender.replaceTrack(camTrack);
             });
-            if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+            if (localVideoRef.current && localStreamRef.current) {
+                localVideoRef.current.srcObject = localStreamRef.current;
+            }
         } else {
             try {
-                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                screenStreamRef.current = screenStream;
+                const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                screenStreamRef.current = screen;
                 setIsScreenSharing(true);
-                const screenVideoTrack = screenStream.getVideoTracks()[0];
+                const screenTrack = screen.getVideoTracks()[0];
                 Object.values(peerConnections.current).forEach((pc) => {
-                    const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
-                    if (videoSender) videoSender.replaceTrack(screenVideoTrack);
+                    const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+                    if (sender) sender.replaceTrack(screenTrack);
                 });
-                if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
-                screenVideoTrack.onended = () => toggleScreenShare();
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = screen;
+                }
+                screenTrack.onended = () => toggleScreenShare();
             } catch (err) {
-                console.error("Screen share failed:", err);
+                console.error("[ScreenShare] Failed:", err);
             }
         }
     };
 
-    // ── Send Chat Message ──────────────────────────────────────────────────────
+    // ── Chat send ──────────────────────────────────────────────────
     const sendChat = () => {
         const text = chatInput.trim();
-        if (!text || !socketRef.current) return;
+        if (!text || !socketRef.current?.connected) return;
         const msg = {
             sender: currentUser.name,
             role: currentRole,
@@ -389,131 +569,185 @@ const MeetingRoom = () => {
         setChatInput("");
     };
 
-    // Auto-scroll chat
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatMessages]);
 
-    // Open side panel
     const openPanel = (panel) => {
         setSidePanel((prev) => (prev === panel ? null : panel));
         if (panel === "chat") setUnreadChat(0);
     };
 
-    const totalParticipants = 1 + remotePeers.length;
+    const totalParticipants = 1 + peers.length;
+    const canEndClass = currentRole === "Teacher" || currentRole === "Admin";
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // RENDER
-    // ──────────────────────────────────────────────────────────────────────────
-    return (
-        <Box sx={{ width: "100%", height: "100vh", background: "#0a0f1a", color: "#fff", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'Inter', sans-serif" }}>
-
-            {/* ── TOP BAR ── */}
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, py: 1.5, background: "rgba(15,23,42,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(99,102,241,0.2)", flexShrink: 0 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <RecordIcon sx={{ color: "#ef4444", fontSize: 16, animation: "pulse 1.5s infinite" }} />
-                        <Typography variant="body2" sx={{ color: "#ef4444", fontWeight: 700, letterSpacing: 1 }}>LIVE</Typography>
+    // ─────────────────────────────────────────────────────────────
+    //  CLASS ENDED SCREEN
+    // ─────────────────────────────────────────────────────────────
+    if (classEnded) {
+        return (
+            <Box sx={{ width: "100%", height: "100vh", background: "#0a0f1a", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 3, color: "#fff" }}>
+                <Box sx={{ textAlign: "center", p: 5, borderRadius: "24px", background: "rgba(15,23,42,0.9)", border: "1px solid rgba(239,68,68,0.3)", backdropFilter: "blur(20px)", maxWidth: 500 }}>
+                    <Box sx={{ mb: 3 }}>
+                        <Box sx={{ width: 80, height: 80, borderRadius: "50%", bgcolor: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 2, border: "2px solid rgba(239,68,68,0.4)" }}>
+                            <StopCircleIcon sx={{ fontSize: 44, color: "#ef4444" }} />
+                        </Box>
+                        <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>Class Has Ended</Typography>
+                        <Typography sx={{ color: "#94a3b8", mb: 1 }}>
+                            This live class was ended by <strong style={{ color: "#f1f5f9" }}>{classEndedInfo?.endedBy}</strong>.
+                        </Typography>
+                        {classEndedInfo?.endedAt && (
+                            <Typography variant="body2" sx={{ color: "#64748b" }}>
+                                Ended at: {new Date(classEndedInfo.endedAt).toLocaleTimeString()}
+                            </Typography>
+                        )}
                     </Box>
-                    <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(255,255,255,0.15)" }} />
+                    <Button
+                        variant="contained"
+                        size="large"
+                        onClick={() => navigate(currentRole === "Teacher" ? "/Teacher/dashboard" : "/Student/dashboard")}
+                        sx={{ borderRadius: "14px", fontWeight: 700, px: 4, py: 1.5, background: "linear-gradient(135deg, #2563eb, #7c3aed)", textTransform: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}
+                    >
+                        Return to Dashboard
+                    </Button>
+                </Box>
+            </Box>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  MEETING ROOM UI
+    // ─────────────────────────────────────────────────────────────
+    return (
+        <Box sx={{ width: "100%", height: "100vh", background: "#0a0f1a", color: "#fff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* ── TOP BAR ────────────────────────────────────────── */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, py: 1.5, background: "rgba(15,23,42,0.97)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(99,102,241,0.2)", flexShrink: 0, zIndex: 10 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    {hasJoined && (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <RecordIcon sx={{ color: "#ef4444", fontSize: 14, animation: "pulse 1.5s infinite" }} />
+                            <Typography variant="caption" sx={{ color: "#ef4444", fontWeight: 700, letterSpacing: 1 }}>LIVE</Typography>
+                        </Box>
+                    )}
+                    <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(255,255,255,0.12)", height: 28, alignSelf: "center" }} />
                     <Box>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                        <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2, letterSpacing: 0.5 }}>
                             {roomId}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: "#94a3b8" }}>
-                            {currentUser.name} · {currentRole} · {formatDuration(duration)}
+                        <Typography variant="caption" sx={{ color: "#64748b" }}>
+                            {currentUser.name} · {currentRole} {hasJoined ? `· ${formatDuration(duration)}` : "· Connecting..."}
                         </Typography>
                     </Box>
                 </Box>
-
-                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                    <Chip label={`${totalParticipants} participant${totalParticipants !== 1 ? "s" : ""}`} size="small" sx={{ bgcolor: "rgba(99,102,241,0.2)", color: "#a5b4fc", borderColor: "rgba(99,102,241,0.4)", border: "1px solid" }} />
+                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                    <Chip
+                        label={`${totalParticipants} participant${totalParticipants !== 1 ? "s" : ""}`}
+                        size="small"
+                        sx={{ bgcolor: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.3)", fontWeight: 600 }}
+                    />
                 </Box>
             </Box>
 
-            {/* ── MAIN AREA ── */}
-            <Box sx={{ flex: 1, display: "flex", overflow: "hidden" }}>
+            {/* ── MAIN AREA ───────────────────────────────────────── */}
+            <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
 
-                {/* ── VIDEO GRID ── */}
-                <Box sx={{ flex: 1, p: 2, overflow: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-                    {isJoining && !localStream ? (
-                        <Box sx={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", alignItems: "center", gap: 3 }}>
-                            <CircularProgress size={60} sx={{ color: "#6366f1" }} />
-                            <Typography variant="h6" sx={{ color: "#94a3b8" }}>Connecting to the classroom...</Typography>
+                {/* ── VIDEO GRID ─────────────────────────────────── */}
+                <Box sx={{ flex: 1, p: 2, overflow: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                    {isConnecting ? (
+                        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 3 }}>
+                            <CircularProgress size={64} thickness={3} sx={{ color: "#6366f1" }} />
+                            <Box sx={{ textAlign: "center" }}>
+                                <Typography variant="h6" fontWeight={700}>Connecting to classroom...</Typography>
+                                <Typography variant="body2" sx={{ color: "#64748b", mt: 0.5 }}>Setting up camera and microphone</Typography>
+                            </Box>
                         </Box>
                     ) : (
-                        <Grid container spacing={2} sx={{ flex: 1 }}>
-                            {/* Local video */}
-                            <Grid item xs={12} sm={remotePeers.filter(p => p.stream).length > 0 ? 6 : 12} md={remotePeers.filter(p => p.stream).length > 0 ? 6 : 8}>
-                                <VideoTile
-                                    videoRef={localVideoRef}
-                                    label={`${currentUser.name} (You)`}
-                                    sublabel={currentRole}
-                                    isMuted={isMuted}
-                                    isVideoOff={isVideoOff}
-                                    isLocal
-                                    isScreenSharing={isScreenSharing}
-                                />
-                            </Grid>
+                        <Box sx={{ display: "grid", gap: 2, height: "100%", gridTemplateColumns: peers.filter(p => p.stream).length > 0 ? "1fr 1fr" : "1fr", gridTemplateRows: peers.filter(p => p.stream).length > 2 ? "1fr 1fr" : "1fr", "@media (max-width: 600px)": { gridTemplateColumns: "1fr" } }}>
 
-                            {/* Remote videos */}
-                            {remotePeers.map((peer) => (
-                                <Grid item xs={12} sm={6} md={6} key={peer.socketId}>
-                                    <RemoteVideoTile peer={peer} />
-                                </Grid>
+                            {/* ── LOCAL VIDEO ──────────────────── */}
+                            <LocalVideoTile
+                                videoRef={localVideoRef}
+                                name={currentUser.name}
+                                role={currentRole}
+                                isMuted={isMuted}
+                                isVideoOff={isVideoOff}
+                                isScreenSharing={isScreenSharing}
+                                stream={localStream}
+                            />
+
+                            {/* ── REMOTE VIDEOS ────────────────── */}
+                            {peers.map((peer) => (
+                                <RemoteVideoTile key={peer.socketId} peer={peer} />
                             ))}
-                        </Grid>
+                        </Box>
                     )}
                 </Box>
 
-                {/* ── SIDE PANEL ── */}
+                {/* ── SIDE PANEL ─────────────────────────────────── */}
                 {sidePanel && (
-                    <Box sx={{ width: 320, background: "rgba(15,23,42,0.98)", borderLeft: "1px solid rgba(99,102,241,0.2)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                            <Typography fontWeight={700}>{sidePanel === "chat" ? "Class Chat" : "Participants"}</Typography>
-                            <IconButton size="small" onClick={() => setSidePanel(null)} sx={{ color: "#94a3b8" }}>
+                    <Box sx={{ width: 320, flexShrink: 0, background: "rgba(15,23,42,0.99)", borderLeft: "1px solid rgba(99,102,241,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                        {/* Panel Header */}
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 2, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                            <Typography fontWeight={700} sx={{ fontSize: 15 }}>
+                                {sidePanel === "chat" ? "💬 Class Chat" : "👥 Participants"}
+                            </Typography>
+                            <IconButton size="small" onClick={() => setSidePanel(null)} sx={{ color: "#475569", "&:hover": { color: "#94a3b8" } }}>
                                 <CloseIcon fontSize="small" />
                             </IconButton>
                         </Box>
 
-                        {sidePanel === "chat" ? (
+                        {/* Chat Panel */}
+                        {sidePanel === "chat" && (
                             <>
-                                <Box sx={{ flex: 1, overflowY: "auto", p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+                                <Box sx={{ flex: 1, overflowY: "auto", px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
                                     {chatMessages.length === 0 && (
-                                        <Typography variant="body2" sx={{ color: "#475569", textAlign: "center", mt: 4 }}>No messages yet. Start the conversation!</Typography>
-                                    )}
-                                    {chatMessages.map((msg, i) => (
-                                        <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: msg.sender === currentUser.name ? "flex-end" : "flex-start" }}>
-                                            <Typography variant="caption" sx={{ color: "#64748b", mb: 0.5 }}>
-                                                {msg.sender} · {msg.time}
-                                            </Typography>
-                                            <Box sx={{ bgcolor: msg.sender === currentUser.name ? "#6366f1" : "rgba(51,65,85,0.8)", px: 2, py: 1, borderRadius: msg.sender === currentUser.name ? "16px 16px 4px 16px" : "16px 16px 16px 4px", maxWidth: "85%" }}>
-                                                <Typography variant="body2">{msg.text}</Typography>
-                                            </Box>
+                                        <Box sx={{ textAlign: "center", py: 6, color: "#334155" }}>
+                                            <ChatIcon sx={{ fontSize: 40, mb: 1, opacity: 0.4 }} />
+                                            <Typography variant="body2">No messages yet.</Typography>
                                         </Box>
-                                    ))}
+                                    )}
+                                    {chatMessages.map((msg, i) => {
+                                        const isMe = msg.sender === currentUser.name;
+                                        return (
+                                            <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                                                <Typography variant="caption" sx={{ color: "#475569", mb: 0.4 }}>
+                                                    {isMe ? "You" : msg.sender} · {msg.time}
+                                                </Typography>
+                                                <Box sx={{ bgcolor: isMe ? "#4f46e5" : "#1e293b", px: 2, py: 1, borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px", maxWidth: "88%", border: isMe ? "none" : "1px solid rgba(255,255,255,0.07)" }}>
+                                                    <Typography variant="body2" sx={{ lineHeight: 1.5 }}>{msg.text}</Typography>
+                                                </Box>
+                                            </Box>
+                                        );
+                                    })}
                                     <div ref={chatEndRef} />
                                 </Box>
-                                <Box sx={{ p: 2, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 1 }}>
+                                <Box sx={{ px: 2, pb: 2, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 1 }}>
                                     <TextField
-                                        fullWidth
-                                        size="small"
+                                        fullWidth size="small"
                                         placeholder="Type a message..."
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && sendChat()}
-                                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", color: "#fff", "& fieldset": { borderColor: "rgba(99,102,241,0.3)" }, "&:hover fieldset": { borderColor: "#6366f1" } }, "& .MuiInputBase-input::placeholder": { color: "#475569" } }}
+                                        sx={{
+                                            "& .MuiOutlinedInput-root": { borderRadius: "14px", color: "#f1f5f9", bgcolor: "#1e293b", "& fieldset": { borderColor: "transparent" }, "&:hover fieldset": { borderColor: "rgba(99,102,241,0.4)" }, "&.Mui-focused fieldset": { borderColor: "#6366f1" } },
+                                            "& .MuiInputBase-input::placeholder": { color: "#475569", opacity: 1 }
+                                        }}
                                     />
-                                    <IconButton onClick={sendChat} sx={{ bgcolor: "#6366f1", color: "#fff", "&:hover": { bgcolor: "#4f46e5" }, borderRadius: "12px", width: 40, height: 40 }}>
-                                        <SendIcon fontSize="small" />
+                                    <IconButton onClick={sendChat} sx={{ bgcolor: "#4f46e5", color: "#fff", "&:hover": { bgcolor: "#4338ca" }, borderRadius: "14px", width: 42, height: 42, flexShrink: 0 }}>
+                                        <SendIcon sx={{ fontSize: 18 }} />
                                     </IconButton>
                                 </Box>
                             </>
-                        ) : (
-                            <List sx={{ flex: 1, overflowY: "auto", p: 1 }}>
-                                <ListItem sx={{ borderRadius: "12px", "&:hover": { bgcolor: "rgba(99,102,241,0.1)" } }}>
+                        )}
+
+                        {/* People Panel */}
+                        {sidePanel === "people" && (
+                            <List sx={{ flex: 1, overflowY: "auto", py: 1 }}>
+                                {/* Self */}
+                                <ListItem sx={{ px: 2, py: 1, borderRadius: "10px", mx: 1, width: "auto", "&:hover": { bgcolor: "rgba(99,102,241,0.08)" } }}>
                                     <ListItemAvatar>
-                                        <Avatar sx={{ bgcolor: "#6366f1", width: 36, height: 36, fontSize: 14 }}>
+                                        <Avatar sx={{ bgcolor: "#4f46e5", width: 38, height: 38, fontSize: 15, fontWeight: 700 }}>
                                             {currentUser.name?.[0]?.toUpperCase()}
                                         </Avatar>
                                     </ListItemAvatar>
@@ -521,14 +755,20 @@ const MeetingRoom = () => {
                                         primary={`${currentUser.name} (You)`}
                                         secondary={currentRole}
                                         primaryTypographyProps={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}
-                                        secondaryTypographyProps={{ fontSize: 12, color: "#64748b" }}
+                                        secondaryTypographyProps={{ fontSize: 12, color: "#4f46e5" }}
                                     />
+                                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#22c55e", flexShrink: 0 }} />
                                 </ListItem>
-                                <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", my: 0.5 }} />
-                                {remotePeers.map((peer) => (
-                                    <ListItem key={peer.socketId} sx={{ borderRadius: "12px", "&:hover": { bgcolor: "rgba(99,102,241,0.1)" } }}>
+                                <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", my: 0.5, mx: 2 }} />
+                                {peers.length === 0 && (
+                                    <Box sx={{ textAlign: "center", py: 4, color: "#334155" }}>
+                                        <Typography variant="body2">Waiting for others to join...</Typography>
+                                    </Box>
+                                )}
+                                {peers.map((peer) => (
+                                    <ListItem key={peer.socketId} sx={{ px: 2, py: 1, borderRadius: "10px", mx: 1, width: "auto", "&:hover": { bgcolor: "rgba(99,102,241,0.08)" } }}>
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: peer.role === "Teacher" ? "#7c3aed" : "#334155", width: 36, height: 36, fontSize: 14 }}>
+                                            <Avatar sx={{ bgcolor: peer.role === "Teacher" ? "#7c3aed" : "#1e293b", border: "1px solid rgba(255,255,255,0.1)", width: 38, height: 38, fontSize: 15, fontWeight: 700 }}>
                                                 {peer.userName?.[0]?.toUpperCase()}
                                             </Avatar>
                                         </ListItemAvatar>
@@ -538,7 +778,7 @@ const MeetingRoom = () => {
                                             primaryTypographyProps={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}
                                             secondaryTypographyProps={{ fontSize: 12, color: "#64748b" }}
                                         />
-                                        {peer.stream && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#22c55e" }} />}
+                                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: peer.stream ? "#22c55e" : "#f59e0b", flexShrink: 0 }} />
                                     </ListItem>
                                 ))}
                             </List>
@@ -547,163 +787,243 @@ const MeetingRoom = () => {
                 )}
             </Box>
 
-            {/* ── CONTROL BAR ── */}
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2, py: 2.5, background: "rgba(15,23,42,0.97)", borderTop: "1px solid rgba(99,102,241,0.2)", flexShrink: 0 }}>
-                <Tooltip title={isMuted ? "Unmute" : "Mute"}>
-                    <IconButton onClick={toggleMute} sx={{ bgcolor: isMuted ? "#ef4444" : "rgba(51,65,85,0.8)", color: "#fff", width: 52, height: 52, "&:hover": { bgcolor: isMuted ? "#dc2626" : "rgba(71,85,105,0.9)" }, transition: "all 0.2s" }}>
+            {/* ── CONTROL BAR ─────────────────────────────────────── */}
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1.5, py: 2.5, px: 2, background: "rgba(15,23,42,0.97)", borderTop: "1px solid rgba(99,102,241,0.15)", flexShrink: 0, flexWrap: "wrap" }}>
+
+                <Tooltip title={isMuted ? "Unmute" : "Mute mic"} arrow>
+                    <IconButton onClick={toggleMute} sx={{ bgcolor: isMuted ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isMuted ? "#ef4444" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isMuted ? "#dc2626" : "#334155" }, transition: "all 0.2s" }}>
                         {isMuted ? <MicOffIcon /> : <MicIcon />}
                     </IconButton>
                 </Tooltip>
 
-                <Tooltip title={isVideoOff ? "Start Video" : "Stop Video"}>
-                    <IconButton onClick={toggleVideo} sx={{ bgcolor: isVideoOff ? "#ef4444" : "rgba(51,65,85,0.8)", color: "#fff", width: 52, height: 52, "&:hover": { bgcolor: isVideoOff ? "#dc2626" : "rgba(71,85,105,0.9)" }, transition: "all 0.2s" }}>
+                <Tooltip title={isVideoOff ? "Start video" : "Stop video"} arrow>
+                    <IconButton onClick={toggleVideo} sx={{ bgcolor: isVideoOff ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isVideoOff ? "#ef4444" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isVideoOff ? "#dc2626" : "#334155" }, transition: "all 0.2s" }}>
                         {isVideoOff ? <VideocamOffIcon /> : <VideocamIcon />}
                     </IconButton>
                 </Tooltip>
 
-                <Tooltip title={isScreenSharing ? "Stop Sharing" : "Share Screen"}>
-                    <IconButton onClick={toggleScreenShare} sx={{ bgcolor: isScreenSharing ? "#22c55e" : "rgba(51,65,85,0.8)", color: "#fff", width: 52, height: 52, "&:hover": { bgcolor: isScreenSharing ? "#16a34a" : "rgba(71,85,105,0.9)" }, transition: "all 0.2s" }}>
+                <Tooltip title={isScreenSharing ? "Stop sharing" : "Share screen"} arrow>
+                    <IconButton onClick={toggleScreenShare} sx={{ bgcolor: isScreenSharing ? "#059669" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isScreenSharing ? "#059669" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isScreenSharing ? "#047857" : "#334155" }, transition: "all 0.2s" }}>
                         {isScreenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
                     </IconButton>
                 </Tooltip>
 
-                <Tooltip title="Participants">
-                    <IconButton onClick={() => openPanel("people")} sx={{ bgcolor: sidePanel === "people" ? "#6366f1" : "rgba(51,65,85,0.8)", color: "#fff", width: 52, height: 52, "&:hover": { bgcolor: sidePanel === "people" ? "#4f46e5" : "rgba(71,85,105,0.9)" }, transition: "all 0.2s" }}>
-                        <Badge badgeContent={totalParticipants} color="primary" sx={{ "& .MuiBadge-badge": { bgcolor: "#22c55e", fontSize: 10 } }}>
+                <Tooltip title="Participants" arrow>
+                    <IconButton onClick={() => openPanel("people")} sx={{ bgcolor: sidePanel === "people" ? "#4f46e5" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: sidePanel === "people" ? "#4f46e5" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: sidePanel === "people" ? "#4338ca" : "#334155" }, transition: "all 0.2s" }}>
+                        <Badge badgeContent={totalParticipants} sx={{ "& .MuiBadge-badge": { bgcolor: "#22c55e", color: "#fff", fontSize: 10, fontWeight: 700 } }}>
                             <PeopleIcon />
                         </Badge>
                     </IconButton>
                 </Tooltip>
 
-                <Tooltip title="Chat">
-                    <IconButton onClick={() => openPanel("chat")} sx={{ bgcolor: sidePanel === "chat" ? "#6366f1" : "rgba(51,65,85,0.8)", color: "#fff", width: 52, height: 52, "&:hover": { bgcolor: sidePanel === "chat" ? "#4f46e5" : "rgba(71,85,105,0.9)" }, transition: "all 0.2s" }}>
-                        <Badge badgeContent={unreadChat} color="error">
+                <Tooltip title="Chat" arrow>
+                    <IconButton onClick={() => openPanel("chat")} sx={{ bgcolor: sidePanel === "chat" ? "#4f46e5" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: sidePanel === "chat" ? "#4f46e5" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: sidePanel === "chat" ? "#4338ca" : "#334155" }, transition: "all 0.2s" }}>
+                        <Badge badgeContent={unreadChat} color="error" sx={{ "& .MuiBadge-badge": { fontWeight: 700 } }}>
                             <ChatIcon />
                         </Badge>
                     </IconButton>
                 </Tooltip>
 
-                <Box sx={{ width: 1, height: 48, bgcolor: "rgba(255,255,255,0.12)", borderRadius: 1 }} />
+                {/* Separator */}
+                <Box sx={{ width: 1, height: 44, bgcolor: "rgba(255,255,255,0.08)", borderRadius: "2px", mx: 0.5 }} />
 
+                {/* End Class button (Teacher / Admin only) */}
+                {canEndClass && (
+                    <Tooltip title="End class for everyone" arrow>
+                        <Button
+                            variant="outlined"
+                            startIcon={<StopCircleIcon />}
+                            onClick={() => setShowEndConfirm(true)}
+                            sx={{ borderColor: "#f97316", color: "#f97316", borderRadius: "14px", fontWeight: 700, textTransform: "none", px: 2.5, py: 1.2, "&:hover": { bgcolor: "rgba(249,115,22,0.12)", borderColor: "#ea580c" } }}
+                        >
+                            End Class
+                        </Button>
+                    </Tooltip>
+                )}
+
+                {/* Leave Class (everyone) */}
                 <Button
                     variant="contained"
                     startIcon={<CallEndIcon />}
                     onClick={leaveMeeting}
-                    sx={{ bgcolor: "#ef4444", color: "#fff", px: 3, py: 1.5, borderRadius: "14px", fontWeight: 700, textTransform: "none", "&:hover": { bgcolor: "#dc2626" }, boxShadow: "0 4px 15px rgba(239,68,68,0.4)" }}
+                    sx={{ bgcolor: "#ef4444", color: "#fff", px: 2.5, py: 1.2, borderRadius: "14px", fontWeight: 700, textTransform: "none", "&:hover": { bgcolor: "#dc2626" }, boxShadow: "0 4px 15px rgba(239,68,68,0.35)" }}
                 >
-                    Leave Class
+                    Leave
                 </Button>
             </Box>
 
-            {/* ── PASSWORD MODAL ── */}
-            <Dialog open={isPasswordModalOpen} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: "20px", background: "#1e293b", color: "#fff" } }}>
-                <DialogTitle sx={{ fontWeight: 700, pt: 3, pb: 1 }}>
+            {/* ── PASSWORD MODAL ───────────────────────────────────── */}
+            <Dialog open={isPasswordModalOpen} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: "20px", background: "#0f172a", border: "1px solid rgba(99,102,241,0.2)", color: "#fff" } }}>
+                <DialogTitle sx={{ fontWeight: 800, pt: 3, pb: 0.5, fontSize: 20 }}>
                     🔐 Enter Class Password
                 </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" sx={{ color: "#94a3b8", mb: 3 }}>
-                        Your teacher has shared a password to join this live class. Enter it below.
+                <DialogContent sx={{ pt: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#64748b", mb: 2.5 }}>
+                        Ask your teacher for the meeting password or PIN to join.
                     </Typography>
                     <TextField
-                        fullWidth
-                        type="password"
-                        label="Class Password / PIN"
+                        fullWidth type="password"
+                        label="Password / PIN"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
                         error={!!joinError}
                         helperText={joinError}
                         autoFocus
-                        sx={{ "& .MuiOutlinedInput-root": { color: "#fff", "& fieldset": { borderColor: "rgba(99,102,241,0.4)" }, "&:hover fieldset": { borderColor: "#6366f1" } }, "& .MuiInputLabel-root": { color: "#94a3b8" } }}
+                        sx={{
+                            "& .MuiOutlinedInput-root": { color: "#fff", borderRadius: "12px", "& fieldset": { borderColor: "rgba(99,102,241,0.3)" }, "&:hover fieldset": { borderColor: "#6366f1" }, "&.Mui-focused fieldset": { borderColor: "#6366f1" } },
+                            "& .MuiInputLabel-root": { color: "#64748b" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#6366f1" }
+                        }}
                     />
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-                    <Button onClick={() => navigate(-1)} sx={{ color: "#94a3b8", fontWeight: 600, borderRadius: "10px" }}>
-                        Cancel
-                    </Button>
+                    <Button onClick={() => navigate(-1)} sx={{ color: "#64748b", fontWeight: 600, borderRadius: "10px" }}>Cancel</Button>
                     <Button
                         onClick={handlePasswordSubmit}
                         variant="contained"
-                        sx={{ bgcolor: "#6366f1", fontWeight: 700, borderRadius: "10px", px: 3, "&:hover": { bgcolor: "#4f46e5" } }}
+                        sx={{ bgcolor: "#4f46e5", fontWeight: 700, borderRadius: "10px", px: 3, "&:hover": { bgcolor: "#4338ca" } }}
                     >
                         Join Class
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+            {/* ── END CLASS CONFIRM ────────────────────────────────── */}
+            <Dialog open={showEndConfirm} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: "20px", background: "#0f172a", border: "1px solid rgba(239,68,68,0.2)", color: "#fff" } }}>
+                <DialogTitle sx={{ fontWeight: 800, pt: 3, pb: 0.5, fontSize: 20, color: "#f87171" }}>
+                    ⚠️ End Class for Everyone?
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ color: "#94a3b8" }}>
+                        This will immediately disconnect all <strong style={{ color: "#f1f5f9" }}>{totalParticipants} participant{totalParticipants !== 1 ? "s" : ""}</strong> from the class. This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+                    <Button onClick={() => setShowEndConfirm(false)} sx={{ color: "#64748b", fontWeight: 600, borderRadius: "10px" }}>Cancel</Button>
+                    <Button
+                        onClick={confirmEndClass}
+                        variant="contained"
+                        startIcon={<StopCircleIcon />}
+                        sx={{ bgcolor: "#ef4444", fontWeight: 700, borderRadius: "10px", px: 3, "&:hover": { bgcolor: "#dc2626" } }}
+                    >
+                        Yes, End Class
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <style>{`
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+                video { display: block; }
+            `}</style>
         </Box>
     );
 };
 
-// ── Video Tile Components ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Local Video Tile
+// ─────────────────────────────────────────────────────────────────────────────
+const LocalVideoTile = ({ videoRef, name, role, isMuted, isVideoOff, isScreenSharing, stream }) => {
+    // Ensure srcObject is always in sync
+    useEffect(() => {
+        if (videoRef?.current && stream) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [stream, videoRef]);
 
-const VideoTile = ({ videoRef, label, sublabel, isMuted, isVideoOff, isLocal, isScreenSharing }) => (
-    <Box sx={{ position: "relative", bgcolor: "#0f172a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.3)", height: "100%", minHeight: 320, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { border: "2px solid rgba(99,102,241,0.7)", transition: "border 0.2s" } }}>
-        {isVideoOff && isLocal ? (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                <Avatar sx={{ width: 80, height: 80, fontSize: 32, bgcolor: "#6366f1" }}>
-                    {label?.[0]?.toUpperCase()}
-                </Avatar>
-                <Typography variant="body2" sx={{ color: "#94a3b8" }}>Camera is off</Typography>
-            </Box>
-        ) : (
+    return (
+        <Box sx={{ position: "relative", bgcolor: "#060d1a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.35)", minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { borderColor: "rgba(99,102,241,0.65)" }, transition: "border-color 0.2s" }}>
+            {/* Always keep video element mounted but show avatar overlay if video off */}
             <video
                 ref={videoRef}
                 autoPlay
                 playsInline
-                muted={isLocal}
-                style={{ width: "100%", height: "100%", objectFit: "cover", transform: isLocal && !isScreenSharing ? "scaleX(-1)" : "none" }}
+                muted
+                style={{
+                    width: "100%", height: "100%", objectFit: "cover",
+                    transform: !isScreenSharing ? "scaleX(-1)" : "none",
+                    display: isVideoOff ? "none" : "block",
+                    position: "absolute", inset: 0
+                }}
             />
-        )}
-        {/* Name overlay */}
-        <Box sx={{ position: "absolute", bottom: 12, left: 12, display: "flex", alignItems: "center", gap: 1, bgcolor: "rgba(15,23,42,0.8)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)" }}>
-            {isMuted && isLocal && <MicOffIcon sx={{ fontSize: 14, color: "#ef4444" }} />}
-            <Typography variant="caption" fontWeight={600}>{label}</Typography>
+            {isVideoOff && (
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, zIndex: 1 }}>
+                    <Avatar sx={{ width: 80, height: 80, fontSize: 32, fontWeight: 800, bgcolor: "#4f46e5", border: "3px solid rgba(99,102,241,0.4)" }}>
+                        {name?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Typography variant="body2" sx={{ color: "#64748b" }}>Camera off</Typography>
+                </Box>
+            )}
+            {/* Name label */}
+            <Box sx={{ position: "absolute", bottom: 10, left: 10, display: "flex", alignItems: "center", gap: 0.8, bgcolor: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                {isMuted && <MicOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
+                <Typography variant="caption" fontWeight={700}>{name} (You)</Typography>
+            </Box>
+            {/* Role badge */}
+            <Box sx={{ position: "absolute", top: 10, right: 10, bgcolor: "rgba(79,70,229,0.75)", px: 1.5, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#c7d2fe" }}>{role}</Typography>
+            </Box>
+            {isScreenSharing && (
+                <Box sx={{ position: "absolute", top: 10, left: 10, bgcolor: "rgba(5,150,105,0.85)", px: 1.5, py: 0.3, borderRadius: "6px", zIndex: 2 }}>
+                    <Typography sx={{ fontSize: 10, fontWeight: 700 }}>📺 SHARING</Typography>
+                </Box>
+            )}
         </Box>
-        {/* Role badge */}
-        {sublabel && (
-            <Box sx={{ position: "absolute", top: 12, right: 12, bgcolor: "rgba(99,102,241,0.7)", px: 1.5, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)" }}>
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: 10 }}>{sublabel}</Typography>
-            </Box>
-        )}
-        {isScreenSharing && (
-            <Box sx={{ position: "absolute", top: 12, left: 12, bgcolor: "rgba(34,197,94,0.8)", px: 1.5, py: 0.3, borderRadius: "6px" }}>
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: 10 }}>📺 SHARING SCREEN</Typography>
-            </Box>
-        )}
-    </Box>
-);
+    );
+};
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Remote Video Tile
+// ─────────────────────────────────────────────────────────────────────────────
 const RemoteVideoTile = ({ peer }) => {
     const videoRef = useRef(null);
 
     useEffect(() => {
         if (videoRef.current && peer.stream) {
             videoRef.current.srcObject = peer.stream;
+            videoRef.current.play().catch(() => {});
         }
     }, [peer.stream]);
 
     return (
-        <Box sx={{ position: "relative", bgcolor: "#0f172a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.2)", height: "100%", minHeight: 320, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { border: "2px solid rgba(99,102,241,0.6)", transition: "border 0.2s" } }}>
-            {!peer.stream ? (
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    <CircularProgress size={40} sx={{ color: "#6366f1" }} />
-                    <Typography variant="body2" sx={{ color: "#94a3b8" }}>Connecting {peer.userName}...</Typography>
+        <Box sx={{ position: "relative", bgcolor: "#060d1a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.2)", minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { borderColor: "rgba(99,102,241,0.5)" }, transition: "border-color 0.2s" }}>
+            {(!peer.stream || peer.isVideoOff) ? (
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, color: "#475569", zIndex: 1 }}>
+                    <Avatar sx={{ width: 70, height: 70, fontSize: 28, fontWeight: 800, bgcolor: "#1e293b", border: "2px solid rgba(255,255,255,0.08)" }}>
+                        {peer.userName?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        {!peer.stream ? (
+                            <>
+                                <CircularProgress size={14} thickness={4} sx={{ color: "#4f46e5" }} />
+                                <Typography variant="caption">Connecting {peer.userName}...</Typography>
+                            </>
+                        ) : (
+                            <Typography variant="caption" sx={{ color: "#64748b" }}>Camera off</Typography>
+                        )}
+                    </Box>
                 </Box>
-            ) : (
+            ) : null}
+
+            {peer.stream && (
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    style={{ 
+                        width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0,
+                        display: peer.isVideoOff ? "none" : "block"
+                    }}
                 />
             )}
-            <Box sx={{ position: "absolute", bottom: 12, left: 12, display: "flex", alignItems: "center", gap: 1, bgcolor: "rgba(15,23,42,0.8)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)" }}>
-                <Typography variant="caption" fontWeight={600}>{peer.userName}</Typography>
+            {/* Name label */}
+            <Box sx={{ position: "absolute", bottom: 10, left: 10, display: "flex", alignItems: "center", gap: 0.8, bgcolor: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                {peer.isMuted && <MicOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
+                <Typography variant="caption" fontWeight={700}>{peer.userName}</Typography>
             </Box>
-            <Box sx={{ position: "absolute", top: 12, right: 12, bgcolor: peer.role === "Teacher" ? "rgba(124,58,237,0.7)" : "rgba(51,65,85,0.7)", px: 1.5, py: 0.3, borderRadius: "6px" }}>
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: 10 }}>{peer.role}</Typography>
+            {/* Role badge */}
+            <Box sx={{ position: "absolute", top: 10, right: 10, bgcolor: peer.role === "Teacher" ? "rgba(124,58,237,0.75)" : "rgba(30,41,59,0.8)", px: 1.5, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: peer.role === "Teacher" ? "#ddd6fe" : "#94a3b8" }}>{peer.role}</Typography>
             </Box>
         </Box>
     );

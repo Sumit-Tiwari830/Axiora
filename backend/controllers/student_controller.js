@@ -167,6 +167,8 @@ const updateExamResult = async (req, res) => {
             return res.send({ message: 'Student not found' });
         }
 
+        const subject = await Subject.findById(subName);
+
         const existingResult = student.examResult.find(
             (result) => result.subName.toString() === subName
         );
@@ -178,6 +180,50 @@ const updateExamResult = async (req, res) => {
         }
 
         const result = await student.save();
+
+        // Check for low marks (< 35 out of 100) and dispatch notice
+        if (subject && Number(marksObtained) < 35) {
+            const Notice = require('../models/noticeSchema.js');
+            const title = `⚠️ Academic Warning: Low Marks for ${student.name} (${subject.subName})`;
+            const details = `Dear ${student.name}, you have obtained low marks in the subject "${subject.subName}" (Marks Obtained: ${marksObtained}/100). We encourage you to review the class materials, spend more time studying, and consult with your subject teacher for support.`;
+
+            const existingNotice = await Notice.findOne({
+                title,
+                school: student.school
+            });
+
+            if (!existingNotice) {
+                const notice = new Notice({
+                    title,
+                    details,
+                    date: new Date(),
+                    school: student.school,
+                    isGlobal: false,
+                    targetClasses: [student.sclassName]
+                });
+                await notice.save();
+
+                // Send email if student has a verified email and SMTP is configured
+                if (student.email && student.emailVerified && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                    const nodemailer = require('nodemailer');
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS
+                        }
+                    });
+                    const mailOptions = {
+                        from: process.env.EMAIL_USER,
+                        to: student.email,
+                        subject: title,
+                        text: details
+                    };
+                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send exam marks warning email", err));
+                }
+            }
+        }
+
         return res.send(result);
     } catch (error) {
         res.status(500).json(error);
@@ -195,6 +241,10 @@ const studentAttendance = async (req, res) => {
         }
 
         const subject = await Subject.findById(subName);
+
+        if (!subject) {
+            return res.send({ message: 'Subject not found' });
+        }
 
         const existingAttendance = student.attendance.find(
             (a) =>
@@ -218,6 +268,63 @@ const studentAttendance = async (req, res) => {
         }
 
         const result = await student.save();
+
+        // Calculate attendance percentage for this subject
+        const totalSessions = subject.sessions || 0;
+        const presentSessions = student.attendance.filter(
+            (a) => a.subName.toString() === subName && a.status === 'Present'
+        ).length;
+        const totalMarked = student.attendance.filter(
+            (a) => a.subName.toString() === subName
+        ).length;
+
+        // Use subject sessions as total, fallback to actual marked records if sessions is 0
+        const totalBase = totalSessions > 0 ? totalSessions : totalMarked;
+        const percentage = totalBase > 0 ? (presentSessions / totalBase) * 100 : 100;
+
+        // Send a warning notice if attendance falls below 70% and there is a decent history (at least 2 entries or sessions set)
+        if (percentage < 70 && (totalBase > 0)) {
+            const Notice = require('../models/noticeSchema.js');
+            const title = `⚠️ Low Attendance Alert: ${student.name} (${subject.subName})`;
+            const details = `Dear ${student.name}, your attendance in the subject "${subject.subName}" has fallen below the required 70%. Your current attendance is ${percentage.toFixed(2)}% (${presentSessions}/${totalBase} sessions). Please make sure to attend classes regularly to avoid academic penalties.`;
+
+            const existingNotice = await Notice.findOne({
+                title,
+                school: student.school
+            });
+
+            if (!existingNotice) {
+                const notice = new Notice({
+                    title,
+                    details,
+                    date: new Date(),
+                    school: student.school,
+                    isGlobal: false,
+                    targetClasses: [student.sclassName]
+                });
+                await notice.save();
+
+                // Send email warning
+                if (student.email && student.emailVerified && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                    const nodemailer = require('nodemailer');
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS
+                        }
+                    });
+                    const mailOptions = {
+                        from: process.env.EMAIL_USER,
+                        to: student.email,
+                        subject: title,
+                        text: details
+                    };
+                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send attendance warning email", err));
+                }
+            }
+        }
+
         return res.send(result);
     } catch (error) {
         res.status(500).json(error);
