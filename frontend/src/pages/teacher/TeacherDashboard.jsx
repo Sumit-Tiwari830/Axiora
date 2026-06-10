@@ -11,7 +11,7 @@ import {
 
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
 
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import TeacherSideBar from "./TeacherSideBar";
 import TeacherHomePage from "./TeacherHomePage";
@@ -19,6 +19,8 @@ import TeacherProfile from "./TeacherProfile";
 import TeacherClassDetails from "./TeacherClassDetails";
 import TeacherViewStudent from "./TeacherViewStudent";
 import TeacherComplain from "./TeacherComplain";
+import TeacherMeeting from "./TeacherMeeting";
+import MeetingRoom from "../../pages/MeetingRoom";
 
 import StudentAttendance from "../admin/studentRelated/StudentAttendance";
 import StudentExamMarks from "../admin/studentRelated/StudentExamMarks";
@@ -30,10 +32,19 @@ import { AppBar, Drawer } from "../../components/styles";
 
 const TeacherDashboard = () => {
     const [open, setOpen] = useState(true);
+    const location = useLocation();
 
     const toggleDrawer = () => {
         setOpen(!open);
     };
+
+    if (location.pathname.startsWith("/meeting/")) {
+        return (
+            <Routes>
+                <Route path="/meeting/:roomId" element={<MeetingRoom />} />
+            </Routes>
+        );
+    }
 
     return (
         <Box sx={{ display: "flex" }}>
@@ -120,6 +131,11 @@ const TeacherDashboard = () => {
                     <Route
                         path="/Teacher/class"
                         element={<TeacherClassDetails />}
+                    />
+
+                    <Route
+                        path="/Teacher/meeting"
+                        element={<TeacherMeeting />}
                     />
 
                     <Route
