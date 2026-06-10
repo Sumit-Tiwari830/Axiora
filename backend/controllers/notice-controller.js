@@ -1,12 +1,49 @@
 const Notice = require('../models/noticeSchema.js');
+const Student = require('../models/studentSchema.js');
+const nodemailer = require('nodemailer');
 
 const noticeCreate = async (req, res) => {
     try {
+        const { isGlobal, targetClasses } = req.body;
         const notice = new Notice({
             ...req.body,
             school: req.body.adminID
         })
         const result = await notice.save()
+
+        let studentsQuery = { school: req.body.adminID, emailVerified: true };
+        if (!isGlobal && targetClasses && targetClasses.length > 0) {
+            studentsQuery.sclassName = { $in: targetClasses };
+        } else if (!isGlobal) {
+            studentsQuery = null; // No target selected
+        }
+
+        if (studentsQuery) {
+            const students = await Student.find(studentsQuery);
+            if (students.length > 0 && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS
+                    }
+                });
+
+                const emails = students.map(s => s.email).filter(e => e);
+
+                if (emails.length > 0) {
+                    const mailOptions = {
+                        from: process.env.EMAIL_USER,
+                        bcc: emails, // Use bcc to hide recipients
+                        subject: `New Notice: ${req.body.title}`,
+                        text: `A new notice has been posted.\n\nTitle: ${req.body.title}\nDetails: ${req.body.details}\nDate: ${req.body.date}`
+                    };
+
+                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send notice emails", err));
+                }
+            }
+        }
+
         res.send(result)
     } catch (err) {
         res.status(500).json(err);
