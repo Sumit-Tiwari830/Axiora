@@ -42,7 +42,7 @@ io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
 
     // ── JOIN ROOM ─────────────────────────────────────────────────
-    socket.on("join-room", async ({ roomId, password, userId, userName, role, isMuted, isVideoOff }) => {
+    socket.on("join-room", async ({ roomId, password, userId, userName, role, isMuted, isVideoOff, allowVoice, allowVideo }) => {
         try {
             // Find meeting in database to check persistence state
             let dbMeeting = await Meeting.findOne({ roomId });
@@ -76,7 +76,11 @@ io.on("connection", (socket) => {
                     ended: false,
                     endedAt: null,
                     endedBy: null,
-                    users: {}
+                    users: {},
+                    allowClassVoice: true,
+                    allowClassVideo: true,
+                    presenters: [],
+                    permissions: {}
                 };
             }
 
@@ -90,6 +94,21 @@ io.on("connection", (socket) => {
                 });
                 return;
             }
+
+            // If creator, initialize class locks and add to presenters
+            if (isCreator) {
+                if (typeof allowVoice !== "undefined") room.allowClassVoice = allowVoice;
+                if (typeof allowVideo !== "undefined") room.allowClassVideo = allowVideo;
+                if (!room.presenters.includes(socket.id)) {
+                    room.presenters.push(socket.id);
+                }
+            }
+
+            // Set user permissions
+            room.permissions[socket.id] = {
+                voiceAllowed: isCreator ? true : false,
+                videoAllowed: isCreator ? true : false
+            };
 
             // Validate password (students only — teacher/admin bypasses)
             if (room.password && room.password !== password && !isCreator) {
@@ -107,6 +126,14 @@ io.on("connection", (socket) => {
             };
             socket.join(roomId);
             console.log(`[Meeting] ${userName} (${role}) joined room ${roomId}`);
+
+            // Send initial room state to joining user
+            socket.emit("room-state", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
 
             // Tell existing members that someone new joined
             socket.to(roomId).emit("user-joined", {
@@ -127,6 +154,14 @@ io.on("connection", (socket) => {
                 }));
 
             socket.emit("all-users", existingUsers);
+
+            // Broadcast updated state to room
+            io.to(roomId).emit("room-state-updated", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
         } catch (err) {
             console.error("Error in join-room socket handler:", err);
             socket.emit("join-error", "An internal server error occurred while joining.");
@@ -172,6 +207,112 @@ io.on("connection", (socket) => {
         if (room && room.users[socket.id]) {
             room.users[socket.id].isVideoOff = isVideoOff;
             socket.to(roomId).emit("peer-video-toggle", { socketId: socket.id, isVideoOff });
+        }
+    });
+
+    // ── CLASS AUDIO LOCK (Teacher/Admin only) ───────────────────────
+    socket.on("toggle-class-audio-lock", ({ roomId, locked }) => {
+        const room = activeMeetings[roomId];
+        if (!room) return;
+
+        const user = room.users[socket.id];
+        if (user && (user.role === "Teacher" || user.role === "Admin")) {
+            room.allowClassVoice = !locked;
+            
+            // Broadcast state update
+            io.to(roomId).emit("room-state-updated", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
+        }
+    });
+
+    // ── CLASS VIDEO LOCK (Teacher/Admin only) ───────────────────────
+    socket.on("toggle-class-video-lock", ({ roomId, locked }) => {
+        const room = activeMeetings[roomId];
+        if (!room) return;
+
+        const user = room.users[socket.id];
+        if (user && (user.role === "Teacher" || user.role === "Admin")) {
+            room.allowClassVideo = !locked;
+
+            // Broadcast state update
+            io.to(roomId).emit("room-state-updated", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
+        }
+    });
+
+    // ── GRANT PEER PERMISSION (Teacher/Admin only) ──────────────────
+    socket.on("grant-peer-permission", ({ roomId, targetSocketId, type, allowed }) => {
+        const room = activeMeetings[roomId];
+        if (!room) return;
+
+        const user = room.users[socket.id];
+        if (user && (user.role === "Teacher" || user.role === "Admin")) {
+            if (!room.permissions[targetSocketId]) {
+                room.permissions[targetSocketId] = { voiceAllowed: false, videoAllowed: false };
+            }
+
+            if (type === "voice") {
+                room.permissions[targetSocketId].voiceAllowed = allowed;
+            } else if (type === "video") {
+                room.permissions[targetSocketId].videoAllowed = allowed;
+            }
+
+            // Force disable media if permission revoked
+            if (!allowed) {
+                io.to(targetSocketId).emit("force-disable-media", { type });
+            }
+
+            // Broadcast state update
+            io.to(roomId).emit("room-state-updated", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
+        }
+    });
+
+    // ── TOGGLE PRESENTER (Teacher/Admin only) ───────────────────────
+    socket.on("toggle-presenter", ({ roomId, targetSocketId, presenting }) => {
+        const room = activeMeetings[roomId];
+        if (!room) return;
+
+        const user = room.users[socket.id];
+        if (user && (user.role === "Teacher" || user.role === "Admin")) {
+            if (presenting) {
+                if (!room.presenters.includes(targetSocketId)) {
+                    room.presenters.push(targetSocketId);
+                }
+            } else {
+                room.presenters = room.presenters.filter(id => id !== targetSocketId);
+            }
+
+            // Broadcast state update
+            io.to(roomId).emit("room-state-updated", {
+                allowClassVoice: room.allowClassVoice,
+                allowClassVideo: room.allowClassVideo,
+                presenters: room.presenters,
+                permissions: room.permissions
+            });
+        }
+    });
+
+    // ── FORCE MUTE PEER (Teacher/Admin only) ────────────────────────
+    socket.on("force-mute-peer", ({ roomId, targetSocketId }) => {
+        const room = activeMeetings[roomId];
+        if (!room) return;
+
+        const user = room.users[socket.id];
+        if (user && (user.role === "Teacher" || user.role === "Admin")) {
+            io.to(targetSocketId).emit("force-mute");
         }
     });
 
@@ -227,6 +368,12 @@ io.on("connection", (socket) => {
             if (room.users[socket.id]) {
                 const user = room.users[socket.id];
                 delete room.users[socket.id];
+                if (room.permissions) {
+                    delete room.permissions[socket.id];
+                }
+                if (room.presenters) {
+                    room.presenters = room.presenters.filter(id => id !== socket.id);
+                }
 
                 // Inform others
                 socket.to(roomId).emit("user-left", socket.id);

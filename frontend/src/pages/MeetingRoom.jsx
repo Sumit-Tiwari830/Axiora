@@ -20,7 +20,9 @@ import {
     Divider,
     Badge,
     Chip,
-    Tooltip
+    Tooltip,
+    Switch,
+    FormControlLabel
 } from "@mui/material";
 import {
     Mic as MicIcon,
@@ -35,7 +37,14 @@ import {
     Send as SendIcon,
     Close as CloseIcon,
     FiberManualRecord as RecordIcon,
-    StopCircle as StopCircleIcon
+    StopCircle as StopCircleIcon,
+    Lock as LockIcon,
+    LockOpen as LockOpenIcon,
+    Star as StarIcon,
+    StarBorder as StarBorderIcon,
+    VolumeOff as VolumeOffIcon,
+    VolumeUp as VolumeUpIcon,
+    AdminPanelSettings as ModeratorIcon
 } from "@mui/icons-material";
 import { io } from "socket.io-client";
 
@@ -60,6 +69,8 @@ const MeetingRoom = () => {
 
     const searchParams = new URLSearchParams(location.search);
     const initialPass = searchParams.get("pass") || "";
+    const allowVoiceParam = searchParams.get("allowVoice") !== "false";
+    const allowVideoParam = searchParams.get("allowVideo") !== "false";
 
     // ── Auth ─────────────────────────────────────────────────────
     const [passwordInput, setPasswordInput] = useState("");
@@ -69,10 +80,16 @@ const MeetingRoom = () => {
 
     // ── Media ────────────────────────────────────────────────────
     const [localStream, setLocalStream] = useState(null);
-    const [peers, setPeers] = useState([]); // [{ socketId, userName, role, stream }]
+    const [peers, setPeers] = useState([]); // [{ socketId, userName, role, stream, isMuted, isVideoOff }]
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+
+    // ── Moderation Settings & Permissions ────────────────────────
+    const [allowClassVoice, setAllowClassVoice] = useState(allowVoiceParam);
+    const [allowClassVideo, setAllowClassVideo] = useState(allowVideoParam);
+    const [presenters, setPresenters] = useState([]); // array of socketIds
+    const [roomPermissions, setRoomPermissions] = useState({});
 
     // ── Class Ended State ─────────────────────────────────────────
     const [classEnded, setClassEnded] = useState(false);
@@ -96,6 +113,17 @@ const MeetingRoom = () => {
     const chatEndRef = useRef(null);
     const timerRef = useRef(null);
     const candidateQueue = useRef({});      // socketId → [RTCIceCandidate]
+    const mySocketIdRef = useRef(null);     // track my own socketId
+
+    const isTeacherOrAdmin = currentRole === "Teacher" || currentRole === "Admin";
+
+    // ── Derived: am I a presenter? ───────────────────────────────
+    const amPresenter = presenters.includes(mySocketIdRef.current);
+
+    // ── Moderation Locks (for students only) ─────────────────────
+    const myPermissions = roomPermissions[mySocketIdRef.current] || {};
+    const isVoiceLocked = !isTeacherOrAdmin && !allowClassVoice && !myPermissions.voiceAllowed;
+    const isVideoLocked = !isTeacherOrAdmin && !allowClassVideo && !myPermissions.videoAllowed;
 
     // Assign local stream to video element whenever either changes
     useEffect(() => {
@@ -111,6 +139,26 @@ const MeetingRoom = () => {
         }
         return () => clearInterval(timerRef.current);
     }, [hasJoined]);
+
+    // Auto-enforce voice lock
+    useEffect(() => {
+        if (isVoiceLocked && !isMuted) {
+            const track = localStreamRef.current?.getAudioTracks()[0];
+            if (track) track.enabled = false;
+            setIsMuted(true);
+            socketRef.current?.emit("toggle-mute", { roomId, isMuted: true });
+        }
+    }, [isVoiceLocked, isMuted, roomId]);
+
+    // Auto-enforce video lock
+    useEffect(() => {
+        if (isVideoLocked && !isVideoOff) {
+            const track = localStreamRef.current?.getVideoTracks()[0];
+            if (track) track.enabled = false;
+            setIsVideoOff(true);
+            socketRef.current?.emit("toggle-video", { roomId, isVideoOff: true });
+        }
+    }, [isVideoLocked, isVideoOff, roomId]);
 
     const formatDuration = (s) => {
         const h = Math.floor(s / 3600);
@@ -144,8 +192,9 @@ const MeetingRoom = () => {
     };
 
     // ── Create RTCPeerConnection ───────────────────────────────────
-    const createPC = useCallback((socketId, userName, role) => {
-        // Avoid duplicate connections
+    // KEY FIX: We always pass the CURRENT localStream explicitly to ensure
+    // tracks are added at the time of PC creation, not captured in a closure.
+    const createPC = useCallback((socketId, userName, role, currentStream) => {
         if (peerConnections.current[socketId]) {
             return peerConnections.current[socketId];
         }
@@ -153,12 +202,17 @@ const MeetingRoom = () => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
         peerConnections.current[socketId] = pc;
 
-        // Add ALL local tracks to this connection
-        const stream = localStreamRef.current;
+        // ─── CRITICAL FIX: Add all tracks from the stream to this connection ───
+        // We use the passed `currentStream` arg (not a stale closure) so the
+        // teacher's audio/video tracks are always included.
+        const stream = currentStream || localStreamRef.current;
         if (stream) {
             stream.getTracks().forEach((track) => {
+                console.log(`[WebRTC] Adding ${track.kind} track to PC for ${userName}`);
                 pc.addTrack(track, stream);
             });
+        } else {
+            console.warn("[WebRTC] No local stream available when creating PC for", userName);
         }
 
         // Send ICE candidates to the peer
@@ -173,26 +227,24 @@ const MeetingRoom = () => {
 
         // When we receive a remote media track
         pc.ontrack = (event) => {
-            console.log(`[WebRTC] Received remote track:`, event.track.kind, `from`, userName);
+            console.log(`[WebRTC] Received remote ${event.track.kind} track from ${userName}`);
             const remoteStream = event.streams[0];
             if (!remoteStream) return;
             setPeers((prev) => {
                 const existing = prev.find((p) => p.socketId === socketId);
-                // Create a new stream instance containing all tracks of remoteStream
-                // to guarantee a reference change in React state.
                 const streamCopy = new MediaStream(remoteStream.getTracks());
                 if (existing) {
                     return prev.map((p) =>
                         p.socketId === socketId ? { ...p, stream: streamCopy } : p
                     );
                 }
-                return [...prev, { 
-                    socketId, 
-                    userName, 
-                    role, 
-                    stream: streamCopy, 
-                    isMuted: false, 
-                    isVideoOff: false 
+                return [...prev, {
+                    socketId,
+                    userName,
+                    role,
+                    stream: streamCopy,
+                    isMuted: false,
+                    isVideoOff: false
                 }];
             });
         };
@@ -211,11 +263,14 @@ const MeetingRoom = () => {
     const initMeeting = useCallback(async (passVal) => {
         setIsConnecting(true);
 
+        // ─── CRITICAL FIX: Acquire stream FIRST, store in ref ───────
         const stream = await startLocalStream();
         if (!stream) {
             setIsConnecting(false);
             return;
         }
+        // Ensure ref is set immediately (startLocalStream also does this but be explicit)
+        localStreamRef.current = stream;
 
         const baseUrl = (import.meta.env.VITE_REACT_APP_BASE_URL || "http://localhost:5000/api")
             .replace("/api", "")
@@ -230,14 +285,17 @@ const MeetingRoom = () => {
         // ── Connection established ──────────────────────────────
         socket.on("connect", () => {
             console.log("[Socket] Connected:", socket.id);
+            mySocketIdRef.current = socket.id;
             socket.emit("join-room", {
                 roomId,
                 password: passVal,
                 userId: currentUser._id,
                 userName: currentUser.name,
                 role: currentRole,
-                isMuted,
-                isVideoOff
+                isMuted: false,
+                isVideoOff: false,
+                allowVoice: allowVoiceParam,
+                allowVideo: allowVideoParam
             });
         });
 
@@ -261,9 +319,7 @@ const MeetingRoom = () => {
             setClassEndedInfo({ endedBy, endedAt });
             setIsConnecting(false);
             clearInterval(timerRef.current);
-            // Stop all local media
             localStreamRef.current?.getTracks().forEach((t) => t.stop());
-            // Close all peer connections
             Object.values(peerConnections.current).forEach((pc) => pc.close());
             peerConnections.current = {};
             setPeers([]);
@@ -275,15 +331,18 @@ const MeetingRoom = () => {
             setHasJoined(true);
             setIsConnecting(false);
 
+            // ─── Use the stream captured in this closure ────────
+            const currentStream = localStreamRef.current;
+
             users.forEach(async (user) => {
-                const pc = createPC(user.socketId, user.userName, user.role);
-                // Add this peer placeholder immediately
+                // Pass currentStream explicitly so audio/video tracks are included
+                const pc = createPC(user.socketId, user.userName, user.role, currentStream);
                 setPeers((prev) => {
                     if (!prev.find((p) => p.socketId === user.socketId)) {
-                        return [...prev, { 
-                            socketId: user.socketId, 
-                            userName: user.userName, 
-                            role: user.role, 
+                        return [...prev, {
+                            socketId: user.socketId,
+                            userName: user.userName,
+                            role: user.role,
                             stream: null,
                             isMuted: user.isMuted || false,
                             isVideoOff: user.isVideoOff || false
@@ -306,7 +365,6 @@ const MeetingRoom = () => {
                 }
             });
 
-            // If no one else is in the room yet, we're still connected
             if (users.length === 0) {
                 console.log("[Meeting] Waiting for others to join...");
             }
@@ -314,18 +372,19 @@ const MeetingRoom = () => {
 
         // ── Signaling: receive offer / answer / candidate ───────
         socket.on("signal", async ({ from, signal, fromUserName, fromRole }) => {
+            const currentStream = localStreamRef.current;
+
             if (signal.type === "offer") {
-                // Someone sent us an offer — create PC, answer it
                 let pc = peerConnections.current[from];
                 if (!pc) {
-                    pc = createPC(from, fromUserName || "Peer", fromRole || "Student");
-                    // Add placeholder for the incoming peer
+                    // Pass currentStream explicitly here too
+                    pc = createPC(from, fromUserName || "Peer", fromRole || "Student", currentStream);
                     setPeers((prev) => {
                         if (!prev.find((p) => p.socketId === from)) {
-                            return [...prev, { 
-                                socketId: from, 
-                                userName: fromUserName || "Peer", 
-                                role: fromRole || "Student", 
+                            return [...prev, {
+                                socketId: from,
+                                userName: fromUserName || "Peer",
+                                role: fromRole || "Student",
                                 stream: null,
                                 isMuted: false,
                                 isVideoOff: false
@@ -336,8 +395,7 @@ const MeetingRoom = () => {
                 }
                 try {
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                    
-                    // Process queued candidates for this peer
+
                     if (candidateQueue.current[from]) {
                         for (const cand of candidateQueue.current[from]) {
                             try {
@@ -364,8 +422,7 @@ const MeetingRoom = () => {
                 if (pc) {
                     try {
                         await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                        
-                        // Process queued candidates for this peer
+
                         if (candidateQueue.current[from]) {
                             for (const cand of candidateQueue.current[from]) {
                                 try {
@@ -391,7 +448,6 @@ const MeetingRoom = () => {
                             // ICE candidate errors are usually non-fatal
                         }
                     } else {
-                        // Queue the candidate until remote description is set
                         if (!candidateQueue.current[from]) {
                             candidateQueue.current[from] = [];
                         }
@@ -404,16 +460,15 @@ const MeetingRoom = () => {
         // ── New user joined the room ────────────────────────────
         socket.on("user-joined", ({ socketId, userName, role, isMuted, isVideoOff }) => {
             console.log("[Meeting] New user joined:", userName);
-            // They will send us an offer, so just add a placeholder
             setPeers((prev) => {
                 if (!prev.find((p) => p.socketId === socketId)) {
-                    return [...prev, { 
-                        socketId, 
-                        userName, 
-                        role, 
-                        stream: null, 
-                        isMuted: isMuted || false, 
-                        isVideoOff: isVideoOff || false 
+                    return [...prev, {
+                        socketId,
+                        userName,
+                        role,
+                        stream: null,
+                        isMuted: isMuted || false,
+                        isVideoOff: isVideoOff || false
                     }];
                 }
                 return prev;
@@ -431,6 +486,44 @@ const MeetingRoom = () => {
             setPeers((prev) =>
                 prev.map((p) => (p.socketId === socketId ? { ...p, isVideoOff } : p))
             );
+        });
+
+        // ── Room lock settings & permissions ────────────────────
+        socket.on("room-state", ({ allowClassVoice, allowClassVideo, presenters, permissions }) => {
+            setAllowClassVoice(allowClassVoice);
+            setAllowClassVideo(allowClassVideo);
+            setPresenters(presenters);
+            setRoomPermissions(permissions);
+        });
+
+        socket.on("room-state-updated", ({ allowClassVoice, allowClassVideo, presenters, permissions }) => {
+            setAllowClassVoice(allowClassVoice);
+            setAllowClassVideo(allowClassVideo);
+            setPresenters(presenters);
+            setRoomPermissions(permissions);
+        });
+
+        // ── Force disable media ─────────────────────────────────
+        socket.on("force-disable-media", ({ type }) => {
+            if (type === "voice") {
+                const track = localStreamRef.current?.getAudioTracks()[0];
+                if (track) track.enabled = false;
+                setIsMuted(true);
+                socketRef.current?.emit("toggle-mute", { roomId, isMuted: true });
+            } else if (type === "video") {
+                const track = localStreamRef.current?.getVideoTracks()[0];
+                if (track) track.enabled = false;
+                setIsVideoOff(true);
+                socketRef.current?.emit("toggle-video", { roomId, isVideoOff: true });
+            }
+        });
+
+        // ── Force mute from teacher ─────────────────────────────
+        socket.on("force-mute", () => {
+            const track = localStreamRef.current?.getAudioTracks()[0];
+            if (track) track.enabled = false;
+            setIsMuted(true);
+            socketRef.current?.emit("toggle-mute", { roomId, isMuted: true });
         });
 
         // ── User disconnected ───────────────────────────────────
@@ -455,7 +548,7 @@ const MeetingRoom = () => {
             });
         });
 
-    }, [roomId, currentUser, currentRole, createPC, isMuted, isVideoOff]);
+    }, [roomId, currentUser, currentRole, createPC, allowVoiceParam, allowVideoParam]);
 
     // ── Entry point ────────────────────────────────────────────────
     useEffect(() => {
@@ -500,6 +593,7 @@ const MeetingRoom = () => {
 
     // ── Toggle Mute ────────────────────────────────────────────────
     const toggleMute = () => {
+        if (isVoiceLocked) return; // locked by teacher
         const track = localStreamRef.current?.getAudioTracks()[0];
         if (track) {
             track.enabled = !track.enabled;
@@ -511,6 +605,7 @@ const MeetingRoom = () => {
 
     // ── Toggle Video ───────────────────────────────────────────────
     const toggleVideo = () => {
+        if (isVideoLocked) return; // locked by teacher
         const track = localStreamRef.current?.getVideoTracks()[0];
         if (track) {
             track.enabled = !track.enabled;
@@ -578,8 +673,68 @@ const MeetingRoom = () => {
         if (panel === "chat") setUnreadChat(0);
     };
 
+    // ── Teacher: toggle class audio lock ──────────────────────────
+    const toggleClassAudioLock = () => {
+        const newLocked = allowClassVoice; // if currently allowed, we lock it
+        socketRef.current?.emit("toggle-class-audio-lock", { roomId, locked: newLocked });
+    };
+
+    // ── Teacher: toggle class video lock ──────────────────────────
+    const toggleClassVideoLock = () => {
+        const newLocked = allowClassVideo;
+        socketRef.current?.emit("toggle-class-video-lock", { roomId, locked: newLocked });
+    };
+
+    // ── Teacher: force mute a peer ────────────────────────────────
+    const forceMutePeer = (targetSocketId) => {
+        socketRef.current?.emit("force-mute-peer", { roomId, targetSocketId });
+    };
+
+    // ── Teacher: grant/revoke voice permission for a peer ─────────
+    const togglePeerVoicePermission = (targetSocketId) => {
+        const current = roomPermissions[targetSocketId]?.voiceAllowed || false;
+        socketRef.current?.emit("grant-peer-permission", {
+            roomId,
+            targetSocketId,
+            type: "voice",
+            allowed: !current
+        });
+    };
+
+    // ── Teacher: grant/revoke video permission for a peer ─────────
+    const togglePeerVideoPermission = (targetSocketId) => {
+        const current = roomPermissions[targetSocketId]?.videoAllowed || false;
+        socketRef.current?.emit("grant-peer-permission", {
+            roomId,
+            targetSocketId,
+            type: "video",
+            allowed: !current
+        });
+    };
+
+    // ── Teacher: toggle presenter status for a peer ───────────────
+    const togglePresenter = (targetSocketId) => {
+        const isCurrentlyPresenter = presenters.includes(targetSocketId);
+        socketRef.current?.emit("toggle-presenter", {
+            roomId,
+            targetSocketId,
+            presenting: !isCurrentlyPresenter
+        });
+    };
+
+    // ── Layout logic ──────────────────────────────────────────────
+    // Presenter peers (their tiles go to main area)
+    // Non-presenter peers go to sidebar strip
+    const presenterPeers = peers.filter(p => presenters.includes(p.socketId));
+    const sidebarPeers = peers.filter(p => !presenters.includes(p.socketId));
+
+    // Who shows in the main video area:
+    // - If I am a presenter, show my local + presenter peers
+    // - If there are NO presenters, show everyone (normal grid)
+    const hasActivePresenters = presenters.length > 0;
+
     const totalParticipants = 1 + peers.length;
-    const canEndClass = currentRole === "Teacher" || currentRole === "Admin";
+    const canEndClass = isTeacherOrAdmin;
 
     // ─────────────────────────────────────────────────────────────
     //  CLASS ENDED SCREEN
@@ -641,6 +796,19 @@ const MeetingRoom = () => {
                     </Box>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                    {/* Lock indicators for students */}
+                    {!isTeacherOrAdmin && (
+                        <>
+                            {!allowClassVoice && !myPermissions.voiceAllowed && (
+                                <Chip icon={<MicOffIcon sx={{ fontSize: 14 }} />} label="Mic Locked" size="small"
+                                    sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)", fontWeight: 600 }} />
+                            )}
+                            {!allowClassVideo && !myPermissions.videoAllowed && (
+                                <Chip icon={<VideocamOffIcon sx={{ fontSize: 14 }} />} label="Camera Locked" size="small"
+                                    sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)", fontWeight: 600 }} />
+                            )}
+                        </>
+                    )}
                     <Chip
                         label={`${totalParticipants} participant${totalParticipants !== 1 ? "s" : ""}`}
                         size="small"
@@ -652,8 +820,8 @@ const MeetingRoom = () => {
             {/* ── MAIN AREA ───────────────────────────────────────── */}
             <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
 
-                {/* ── VIDEO GRID ─────────────────────────────────── */}
-                <Box sx={{ flex: 1, p: 2, overflow: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                {/* ── VIDEO AREA ─────────────────────────────────── */}
+                <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                     {isConnecting ? (
                         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 3 }}>
                             <CircularProgress size={64} thickness={3} sx={{ color: "#6366f1" }} />
@@ -662,24 +830,80 @@ const MeetingRoom = () => {
                                 <Typography variant="body2" sx={{ color: "#64748b", mt: 0.5 }}>Setting up camera and microphone</Typography>
                             </Box>
                         </Box>
+                    ) : hasActivePresenters ? (
+                        /* ── PRESENTER LAYOUT ────────────────────── */
+                        <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+                            {/* Big screen area */}
+                            <Box sx={{ flex: 1, p: 1.5, display: "grid", gap: 1.5, overflow: "hidden",
+                                gridTemplateColumns: presenterPeers.length + (amPresenter ? 1 : 0) >= 2 ? "1fr 1fr" : "1fr",
+                                gridTemplateRows: "1fr"
+                            }}>
+                                {/* Teacher/presenter local tile (if I am a presenter) */}
+                                {amPresenter && (
+                                    <LocalVideoTile
+                                        videoRef={localVideoRef}
+                                        name={currentUser.name}
+                                        role={currentRole}
+                                        isMuted={isMuted}
+                                        isVideoOff={isVideoOff}
+                                        isScreenSharing={isScreenSharing}
+                                        stream={localStream}
+                                        isPresenter={true}
+                                    />
+                                )}
+                                {/* Presenter peer tiles */}
+                                {presenterPeers.map((peer) => (
+                                    <RemoteVideoTile key={peer.socketId} peer={peer} isPresenter={true} />
+                                ))}
+                            </Box>
+
+                            {/* Participant strip (right sidebar) */}
+                            <Box sx={{ width: 180, flexShrink: 0, background: "rgba(15,23,42,0.98)", borderLeft: "1px solid rgba(99,102,241,0.12)", overflowY: "auto", display: "flex", flexDirection: "column", gap: 1, p: 1 }}>
+                                <Typography variant="caption" sx={{ color: "#475569", px: 1, pt: 0.5, fontWeight: 700, letterSpacing: 0.5 }}>
+                                    PARTICIPANTS
+                                </Typography>
+                                {/* My local tile (small) if I'm not a presenter */}
+                                {!amPresenter && (
+                                    <LocalVideoTile
+                                        videoRef={localVideoRef}
+                                        name={currentUser.name}
+                                        role={currentRole}
+                                        isMuted={isMuted}
+                                        isVideoOff={isVideoOff}
+                                        isScreenSharing={isScreenSharing}
+                                        stream={localStream}
+                                        isPresenter={false}
+                                        compact={true}
+                                    />
+                                )}
+                                {sidebarPeers.map((peer) => (
+                                    <RemoteVideoTile key={peer.socketId} peer={peer} isPresenter={false} compact={true} />
+                                ))}
+                            </Box>
+                        </Box>
                     ) : (
-                        <Box sx={{ display: "grid", gap: 2, height: "100%", gridTemplateColumns: peers.filter(p => p.stream).length > 0 ? "1fr 1fr" : "1fr", gridTemplateRows: peers.filter(p => p.stream).length > 2 ? "1fr 1fr" : "1fr", "@media (max-width: 600px)": { gridTemplateColumns: "1fr" } }}>
-
-                            {/* ── LOCAL VIDEO ──────────────────── */}
-                            <LocalVideoTile
-                                videoRef={localVideoRef}
-                                name={currentUser.name}
-                                role={currentRole}
-                                isMuted={isMuted}
-                                isVideoOff={isVideoOff}
-                                isScreenSharing={isScreenSharing}
-                                stream={localStream}
-                            />
-
-                            {/* ── REMOTE VIDEOS ────────────────── */}
-                            {peers.map((peer) => (
-                                <RemoteVideoTile key={peer.socketId} peer={peer} />
-                            ))}
+                        /* ── NORMAL GRID LAYOUT ──────────────────── */
+                        <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
+                            <Box sx={{
+                                display: "grid", gap: 2, height: "100%",
+                                gridTemplateColumns: peers.length === 0 ? "1fr" : peers.length === 1 ? "1fr 1fr" : peers.length <= 3 ? "1fr 1fr" : "1fr 1fr 1fr",
+                                gridTemplateRows: peers.length <= 1 ? "1fr" : "1fr 1fr",
+                                "@media (max-width: 600px)": { gridTemplateColumns: "1fr" }
+                            }}>
+                                <LocalVideoTile
+                                    videoRef={localVideoRef}
+                                    name={currentUser.name}
+                                    role={currentRole}
+                                    isMuted={isMuted}
+                                    isVideoOff={isVideoOff}
+                                    isScreenSharing={isScreenSharing}
+                                    stream={localStream}
+                                    isPresenter={false}
+                                />
+                                {peers.map((peer) => (
+                                    <RemoteVideoTile key={peer.socketId} peer={peer} isPresenter={false} />
+                                ))}
+                            </Box>
                         </Box>
                     )}
                 </Box>
@@ -704,17 +928,40 @@ const MeetingRoom = () => {
                                     {chatMessages.length === 0 && (
                                         <Box sx={{ textAlign: "center", py: 6, color: "#334155" }}>
                                             <ChatIcon sx={{ fontSize: 40, mb: 1, opacity: 0.4 }} />
-                                            <Typography variant="body2">No messages yet.</Typography>
+                                            <Typography variant="body2">No messages yet. Say hello!</Typography>
                                         </Box>
                                     )}
                                     {chatMessages.map((msg, i) => {
                                         const isMe = msg.sender === currentUser.name;
+                                        const isTeacher = msg.role === "Teacher" || msg.role === "Admin";
                                         return (
                                             <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
-                                                <Typography variant="caption" sx={{ color: "#475569", mb: 0.4 }}>
-                                                    {isMe ? "You" : msg.sender} · {msg.time}
-                                                </Typography>
-                                                <Box sx={{ bgcolor: isMe ? "#4f46e5" : "#1e293b", px: 2, py: 1, borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px", maxWidth: "88%", border: isMe ? "none" : "1px solid rgba(255,255,255,0.07)" }}>
+                                                {/* Sender name + time */}
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, mb: 0.4 }}>
+                                                    {!isMe && (
+                                                        <Avatar sx={{
+                                                            width: 18, height: 18, fontSize: 10, fontWeight: 700,
+                                                            bgcolor: isTeacher ? "#7c3aed" : "#1e293b",
+                                                            border: "1px solid rgba(255,255,255,0.1)"
+                                                        }}>
+                                                            {msg.sender?.[0]?.toUpperCase()}
+                                                        </Avatar>
+                                                    )}
+                                                    <Typography variant="caption" sx={{ color: isTeacher && !isMe ? "#a78bfa" : "#475569", fontWeight: isTeacher ? 700 : 400 }}>
+                                                        {isMe ? "You" : msg.sender}
+                                                        {isTeacher && !isMe ? " · 👨‍🏫" : ""}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: "#334155", fontSize: 10 }}>
+                                                        {msg.time}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{
+                                                    bgcolor: isMe ? "#4f46e5" : isTeacher ? "rgba(124,58,237,0.2)" : "#1e293b",
+                                                    px: 2, py: 1,
+                                                    borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                                                    maxWidth: "88%",
+                                                    border: isMe ? "none" : isTeacher ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(255,255,255,0.07)"
+                                                }}>
                                                     <Typography variant="body2" sx={{ lineHeight: 1.5 }}>{msg.text}</Typography>
                                                 </Box>
                                             </Box>
@@ -743,45 +990,129 @@ const MeetingRoom = () => {
 
                         {/* People Panel */}
                         {sidePanel === "people" && (
-                            <List sx={{ flex: 1, overflowY: "auto", py: 1 }}>
-                                {/* Self */}
-                                <ListItem sx={{ px: 2, py: 1, borderRadius: "10px", mx: 1, width: "auto", "&:hover": { bgcolor: "rgba(99,102,241,0.08)" } }}>
-                                    <ListItemAvatar>
-                                        <Avatar sx={{ bgcolor: "#4f46e5", width: 38, height: 38, fontSize: 15, fontWeight: 700 }}>
-                                            {currentUser.name?.[0]?.toUpperCase()}
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={`${currentUser.name} (You)`}
-                                        secondary={currentRole}
-                                        primaryTypographyProps={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}
-                                        secondaryTypographyProps={{ fontSize: 12, color: "#4f46e5" }}
-                                    />
-                                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#22c55e", flexShrink: 0 }} />
-                                </ListItem>
-                                <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", my: 0.5, mx: 2 }} />
-                                {peers.length === 0 && (
-                                    <Box sx={{ textAlign: "center", py: 4, color: "#334155" }}>
-                                        <Typography variant="body2">Waiting for others to join...</Typography>
+                            <Box sx={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                                {/* Teacher moderation controls */}
+                                {isTeacherOrAdmin && (
+                                    <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid rgba(255,255,255,0.07)", bgcolor: "rgba(99,102,241,0.06)" }}>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                                            <ModeratorIcon sx={{ fontSize: 16, color: "#a5b4fc" }} />
+                                            <Typography variant="caption" sx={{ color: "#a5b4fc", fontWeight: 700, letterSpacing: 0.5 }}>CLASS CONTROLS</Typography>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+                                                    {allowClassVoice ? <MicIcon sx={{ fontSize: 15, color: "#22c55e" }} /> : <MicOffIcon sx={{ fontSize: 15, color: "#ef4444" }} />}
+                                                    <Typography variant="caption" sx={{ color: "#94a3b8" }}>Student Microphones</Typography>
+                                                </Box>
+                                                <Switch
+                                                    checked={allowClassVoice}
+                                                    onChange={toggleClassAudioLock}
+                                                    size="small"
+                                                    sx={{
+                                                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#22c55e" },
+                                                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "#22c55e" }
+                                                    }}
+                                                />
+                                            </Box>
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+                                                    {allowClassVideo ? <VideocamIcon sx={{ fontSize: 15, color: "#22c55e" }} /> : <VideocamOffIcon sx={{ fontSize: 15, color: "#ef4444" }} />}
+                                                    <Typography variant="caption" sx={{ color: "#94a3b8" }}>Student Cameras</Typography>
+                                                </Box>
+                                                <Switch
+                                                    checked={allowClassVideo}
+                                                    onChange={toggleClassVideoLock}
+                                                    size="small"
+                                                    sx={{
+                                                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#22c55e" },
+                                                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "#22c55e" }
+                                                    }}
+                                                />
+                                            </Box>
+                                        </Box>
                                     </Box>
                                 )}
-                                {peers.map((peer) => (
-                                    <ListItem key={peer.socketId} sx={{ px: 2, py: 1, borderRadius: "10px", mx: 1, width: "auto", "&:hover": { bgcolor: "rgba(99,102,241,0.08)" } }}>
+
+                                <List sx={{ py: 1, flex: 1 }}>
+                                    {/* Self */}
+                                    <ListItem sx={{ px: 2, py: 0.8 }}>
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: peer.role === "Teacher" ? "#7c3aed" : "#1e293b", border: "1px solid rgba(255,255,255,0.1)", width: 38, height: 38, fontSize: 15, fontWeight: 700 }}>
-                                                {peer.userName?.[0]?.toUpperCase()}
+                                            <Avatar sx={{ bgcolor: "#4f46e5", width: 36, height: 36, fontSize: 14, fontWeight: 700 }}>
+                                                {currentUser.name?.[0]?.toUpperCase()}
                                             </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
-                                            primary={peer.userName}
-                                            secondary={peer.role}
-                                            primaryTypographyProps={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}
-                                            secondaryTypographyProps={{ fontSize: 12, color: "#64748b" }}
+                                            primary={`${currentUser.name} (You)`}
+                                            secondary={currentRole}
+                                            primaryTypographyProps={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}
+                                            secondaryTypographyProps={{ fontSize: 11, color: "#4f46e5" }}
                                         />
-                                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: peer.stream ? "#22c55e" : "#f59e0b", flexShrink: 0 }} />
+                                        {amPresenter && <Chip label="Presenter" size="small" sx={{ bgcolor: "rgba(234,179,8,0.15)", color: "#fbbf24", border: "1px solid rgba(234,179,8,0.3)", fontSize: 10, fontWeight: 700, height: 20 }} />}
+                                        <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "#22c55e", ml: 1 }} />
                                     </ListItem>
-                                ))}
-                            </List>
+                                    <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", my: 0.5, mx: 2 }} />
+                                    {peers.length === 0 && (
+                                        <Box sx={{ textAlign: "center", py: 4, color: "#334155" }}>
+                                            <Typography variant="body2">Waiting for others to join...</Typography>
+                                        </Box>
+                                    )}
+                                    {peers.map((peer) => {
+                                        const peerPermissions = roomPermissions[peer.socketId] || {};
+                                        const isPeerPresenter = presenters.includes(peer.socketId);
+                                        return (
+                                            <ListItem key={peer.socketId} sx={{ px: 2, py: 0.8, flexDirection: "column", alignItems: "stretch" }}>
+                                                <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+                                                    <Avatar sx={{ bgcolor: peer.role === "Teacher" ? "#7c3aed" : "#1e293b", border: "1px solid rgba(255,255,255,0.1)", width: 36, height: 36, fontSize: 14, fontWeight: 700, mr: 1.5 }}>
+                                                        {peer.userName?.[0]?.toUpperCase()}
+                                                    </Avatar>
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                            {peer.userName}
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: 11, color: "#64748b" }}>{peer.role}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                                        {isPeerPresenter && <Chip label="Presenter" size="small" sx={{ bgcolor: "rgba(234,179,8,0.15)", color: "#fbbf24", border: "1px solid rgba(234,179,8,0.3)", fontSize: 9, fontWeight: 700, height: 18 }} />}
+                                                        {peer.isMuted && <MicOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
+                                                        {peer.isVideoOff && <VideocamOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
+                                                        <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: peer.stream ? "#22c55e" : "#f59e0b" }} />
+                                                    </Box>
+                                                </Box>
+
+                                                {/* Teacher controls for this peer */}
+                                                {isTeacherOrAdmin && peer.role !== "Teacher" && peer.role !== "Admin" && (
+                                                    <Box sx={{ display: "flex", gap: 0.5, mt: 0.8, pl: 6.5 }}>
+                                                        <Tooltip title="Force mute" arrow>
+                                                            <IconButton size="small" onClick={() => forceMutePeer(peer.socketId)}
+                                                                sx={{ bgcolor: "rgba(239,68,68,0.1)", color: "#f87171", width: 28, height: 28, "&:hover": { bgcolor: "rgba(239,68,68,0.2)" } }}>
+                                                                <MicOffIcon sx={{ fontSize: 13 }} />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title={peerPermissions.voiceAllowed ? "Revoke mic permission" : "Allow mic"} arrow>
+                                                            <IconButton size="small" onClick={() => togglePeerVoicePermission(peer.socketId)}
+                                                                sx={{ bgcolor: peerPermissions.voiceAllowed ? "rgba(34,197,94,0.15)" : "rgba(100,116,139,0.15)", color: peerPermissions.voiceAllowed ? "#4ade80" : "#64748b", width: 28, height: 28, "&:hover": { bgcolor: "rgba(34,197,94,0.25)" } }}>
+                                                                {peerPermissions.voiceAllowed ? <VolumeUpIcon sx={{ fontSize: 13 }} /> : <VolumeOffIcon sx={{ fontSize: 13 }} />}
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title={peerPermissions.videoAllowed ? "Revoke camera permission" : "Allow camera"} arrow>
+                                                            <IconButton size="small" onClick={() => togglePeerVideoPermission(peer.socketId)}
+                                                                sx={{ bgcolor: peerPermissions.videoAllowed ? "rgba(34,197,94,0.15)" : "rgba(100,116,139,0.15)", color: peerPermissions.videoAllowed ? "#4ade80" : "#64748b", width: 28, height: 28, "&:hover": { bgcolor: "rgba(34,197,94,0.25)" } }}>
+                                                                {peerPermissions.videoAllowed ? <VideocamIcon sx={{ fontSize: 13 }} /> : <VideocamOffIcon sx={{ fontSize: 13 }} />}
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title={isPeerPresenter ? "Remove from stage" : "Make presenter"} arrow>
+                                                            <IconButton size="small" onClick={() => togglePresenter(peer.socketId)}
+                                                                sx={{ bgcolor: isPeerPresenter ? "rgba(234,179,8,0.15)" : "rgba(100,116,139,0.15)", color: isPeerPresenter ? "#fbbf24" : "#64748b", width: 28, height: 28, "&:hover": { bgcolor: "rgba(234,179,8,0.25)" } }}>
+                                                                {isPeerPresenter ? <StarIcon sx={{ fontSize: 13 }} /> : <StarBorderIcon sx={{ fontSize: 13 }} />}
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Box>
+                                                )}
+                                            </ListItem>
+                                        );
+                                    })}
+                                </List>
+                            </Box>
                         )}
                     </Box>
                 )}
@@ -790,16 +1121,22 @@ const MeetingRoom = () => {
             {/* ── CONTROL BAR ─────────────────────────────────────── */}
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1.5, py: 2.5, px: 2, background: "rgba(15,23,42,0.97)", borderTop: "1px solid rgba(99,102,241,0.15)", flexShrink: 0, flexWrap: "wrap" }}>
 
-                <Tooltip title={isMuted ? "Unmute" : "Mute mic"} arrow>
-                    <IconButton onClick={toggleMute} sx={{ bgcolor: isMuted ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isMuted ? "#ef4444" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isMuted ? "#dc2626" : "#334155" }, transition: "all 0.2s" }}>
-                        {isMuted ? <MicOffIcon /> : <MicIcon />}
-                    </IconButton>
+                <Tooltip title={isVoiceLocked ? "Mic locked by teacher" : isMuted ? "Unmute" : "Mute mic"} arrow>
+                    <span>
+                        <IconButton onClick={toggleMute} disabled={isVoiceLocked}
+                            sx={{ bgcolor: isMuted ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isMuted ? "#ef4444" : isVoiceLocked ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isMuted ? "#dc2626" : "#334155" }, "&.Mui-disabled": { bgcolor: "rgba(239,68,68,0.15)", color: "rgba(255,255,255,0.3)" }, transition: "all 0.2s" }}>
+                            {isMuted || isVoiceLocked ? <MicOffIcon /> : <MicIcon />}
+                        </IconButton>
+                    </span>
                 </Tooltip>
 
-                <Tooltip title={isVideoOff ? "Start video" : "Stop video"} arrow>
-                    <IconButton onClick={toggleVideo} sx={{ bgcolor: isVideoOff ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isVideoOff ? "#ef4444" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isVideoOff ? "#dc2626" : "#334155" }, transition: "all 0.2s" }}>
-                        {isVideoOff ? <VideocamOffIcon /> : <VideocamIcon />}
-                    </IconButton>
+                <Tooltip title={isVideoLocked ? "Camera locked by teacher" : isVideoOff ? "Start video" : "Stop video"} arrow>
+                    <span>
+                        <IconButton onClick={toggleVideo} disabled={isVideoLocked}
+                            sx={{ bgcolor: isVideoOff ? "#ef4444" : "#1e293b", color: "#fff", width: 52, height: 52, border: "1px solid", borderColor: isVideoOff ? "#ef4444" : isVideoLocked ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.1)", "&:hover": { bgcolor: isVideoOff ? "#dc2626" : "#334155" }, "&.Mui-disabled": { bgcolor: "rgba(239,68,68,0.15)", color: "rgba(255,255,255,0.3)" }, transition: "all 0.2s" }}>
+                            {isVideoOff || isVideoLocked ? <VideocamOffIcon /> : <VideocamIcon />}
+                        </IconButton>
+                    </span>
                 </Tooltip>
 
                 <Tooltip title={isScreenSharing ? "Stop sharing" : "Share screen"} arrow>
@@ -923,17 +1260,23 @@ const MeetingRoom = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Local Video Tile
 // ─────────────────────────────────────────────────────────────────────────────
-const LocalVideoTile = ({ videoRef, name, role, isMuted, isVideoOff, isScreenSharing, stream }) => {
-    // Ensure srcObject is always in sync
+const LocalVideoTile = ({ videoRef, name, role, isMuted, isVideoOff, isScreenSharing, stream, isPresenter, compact = false }) => {
     useEffect(() => {
         if (videoRef?.current && stream) {
             videoRef.current.srcObject = stream;
         }
     }, [stream, videoRef]);
 
+    const minH = compact ? 110 : 220;
+
     return (
-        <Box sx={{ position: "relative", bgcolor: "#060d1a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.35)", minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { borderColor: "rgba(99,102,241,0.65)" }, transition: "border-color 0.2s" }}>
-            {/* Always keep video element mounted but show avatar overlay if video off */}
+        <Box sx={{
+            position: "relative", bgcolor: "#060d1a", borderRadius: compact ? "10px" : "16px", overflow: "hidden",
+            border: isPresenter ? "2px solid rgba(234,179,8,0.6)" : "2px solid rgba(99,102,241,0.35)",
+            minHeight: minH, display: "flex", alignItems: "center", justifyContent: "center",
+            "&:hover": { borderColor: isPresenter ? "rgba(234,179,8,0.9)" : "rgba(99,102,241,0.65)" },
+            transition: "border-color 0.2s", boxShadow: isPresenter ? "0 0 20px rgba(234,179,8,0.15)" : "none"
+        }}>
             <video
                 ref={videoRef}
                 autoPlay
@@ -947,25 +1290,23 @@ const LocalVideoTile = ({ videoRef, name, role, isMuted, isVideoOff, isScreenSha
                 }}
             />
             {isVideoOff && (
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, zIndex: 1 }}>
-                    <Avatar sx={{ width: 80, height: 80, fontSize: 32, fontWeight: 800, bgcolor: "#4f46e5", border: "3px solid rgba(99,102,241,0.4)" }}>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, zIndex: 1 }}>
+                    <Avatar sx={{ width: compact ? 44 : 72, height: compact ? 44 : 72, fontSize: compact ? 18 : 30, fontWeight: 800, bgcolor: "#4f46e5", border: "2px solid rgba(99,102,241,0.4)" }}>
                         {name?.[0]?.toUpperCase()}
                     </Avatar>
-                    <Typography variant="body2" sx={{ color: "#64748b" }}>Camera off</Typography>
+                    {!compact && <Typography variant="body2" sx={{ color: "#64748b" }}>Camera off</Typography>}
                 </Box>
             )}
-            {/* Name label */}
-            <Box sx={{ position: "absolute", bottom: 10, left: 10, display: "flex", alignItems: "center", gap: 0.8, bgcolor: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)", zIndex: 2 }}>
-                {isMuted && <MicOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
-                <Typography variant="caption" fontWeight={700}>{name} (You)</Typography>
+            <Box sx={{ position: "absolute", bottom: 6, left: 6, display: "flex", alignItems: "center", gap: 0.6, bgcolor: "rgba(0,0,0,0.65)", px: 1, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                {isMuted && <MicOffIcon sx={{ fontSize: compact ? 11 : 13, color: "#ef4444" }} />}
+                <Typography sx={{ fontSize: compact ? 10 : 12, fontWeight: 700 }}>{name} (You)</Typography>
             </Box>
-            {/* Role badge */}
-            <Box sx={{ position: "absolute", top: 10, right: 10, bgcolor: "rgba(79,70,229,0.75)", px: 1.5, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
-                <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#c7d2fe" }}>{role}</Typography>
+            <Box sx={{ position: "absolute", top: 6, right: 6, bgcolor: "rgba(79,70,229,0.8)", px: 1, py: 0.2, borderRadius: "5px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                <Typography sx={{ fontSize: 9, fontWeight: 700, color: "#c7d2fe" }}>{role}</Typography>
             </Box>
-            {isScreenSharing && (
-                <Box sx={{ position: "absolute", top: 10, left: 10, bgcolor: "rgba(5,150,105,0.85)", px: 1.5, py: 0.3, borderRadius: "6px", zIndex: 2 }}>
-                    <Typography sx={{ fontSize: 10, fontWeight: 700 }}>📺 SHARING</Typography>
+            {isPresenter && (
+                <Box sx={{ position: "absolute", top: 6, left: 6, bgcolor: "rgba(234,179,8,0.85)", px: 1, py: 0.2, borderRadius: "5px", zIndex: 2 }}>
+                    <Typography sx={{ fontSize: 9, fontWeight: 700 }}>⭐ PRESENTER</Typography>
                 </Box>
             )}
         </Box>
@@ -975,7 +1316,7 @@ const LocalVideoTile = ({ videoRef, name, role, isMuted, isVideoOff, isScreenSha
 // ─────────────────────────────────────────────────────────────────────────────
 //  Remote Video Tile
 // ─────────────────────────────────────────────────────────────────────────────
-const RemoteVideoTile = ({ peer }) => {
+const RemoteVideoTile = ({ peer, isPresenter, compact = false }) => {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -985,46 +1326,60 @@ const RemoteVideoTile = ({ peer }) => {
         }
     }, [peer.stream]);
 
+    const minH = compact ? 110 : 220;
+
     return (
-        <Box sx={{ position: "relative", bgcolor: "#060d1a", borderRadius: "16px", overflow: "hidden", border: "2px solid rgba(99,102,241,0.2)", minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", "&:hover": { borderColor: "rgba(99,102,241,0.5)" }, transition: "border-color 0.2s" }}>
-            {(!peer.stream || peer.isVideoOff) ? (
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, color: "#475569", zIndex: 1 }}>
-                    <Avatar sx={{ width: 70, height: 70, fontSize: 28, fontWeight: 800, bgcolor: "#1e293b", border: "2px solid rgba(255,255,255,0.08)" }}>
+        <Box sx={{
+            position: "relative", bgcolor: "#060d1a", borderRadius: compact ? "10px" : "16px", overflow: "hidden",
+            border: isPresenter ? "2px solid rgba(234,179,8,0.5)" : "2px solid rgba(99,102,241,0.2)",
+            minHeight: minH, display: "flex", alignItems: "center", justifyContent: "center",
+            "&:hover": { borderColor: isPresenter ? "rgba(234,179,8,0.8)" : "rgba(99,102,241,0.5)" },
+            transition: "border-color 0.2s", boxShadow: isPresenter ? "0 0 20px rgba(234,179,8,0.1)" : "none"
+        }}>
+            {(!peer.stream || peer.isVideoOff) && (
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: compact ? 0.5 : 1.5, color: "#475569", zIndex: 1 }}>
+                    <Avatar sx={{ width: compact ? 40 : 64, height: compact ? 40 : 64, fontSize: compact ? 16 : 26, fontWeight: 800, bgcolor: "#1e293b", border: "2px solid rgba(255,255,255,0.08)" }}>
                         {peer.userName?.[0]?.toUpperCase()}
                     </Avatar>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        {!peer.stream ? (
-                            <>
-                                <CircularProgress size={14} thickness={4} sx={{ color: "#4f46e5" }} />
-                                <Typography variant="caption">Connecting {peer.userName}...</Typography>
-                            </>
-                        ) : (
-                            <Typography variant="caption" sx={{ color: "#64748b" }}>Camera off</Typography>
-                        )}
-                    </Box>
+                    {!compact && (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+                            {!peer.stream ? (
+                                <>
+                                    <CircularProgress size={12} thickness={4} sx={{ color: "#4f46e5" }} />
+                                    <Typography variant="caption">Connecting...</Typography>
+                                </>
+                            ) : (
+                                <Typography variant="caption" sx={{ color: "#64748b" }}>Camera off</Typography>
+                            )}
+                        </Box>
+                    )}
                 </Box>
-            ) : null}
+            )}
 
             {peer.stream && (
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    style={{ 
+                    style={{
                         width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0,
                         display: peer.isVideoOff ? "none" : "block"
                     }}
                 />
             )}
-            {/* Name label */}
-            <Box sx={{ position: "absolute", bottom: 10, left: 10, display: "flex", alignItems: "center", gap: 0.8, bgcolor: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "8px", backdropFilter: "blur(8px)", zIndex: 2 }}>
-                {peer.isMuted && <MicOffIcon sx={{ fontSize: 13, color: "#ef4444" }} />}
-                <Typography variant="caption" fontWeight={700}>{peer.userName}</Typography>
+
+            <Box sx={{ position: "absolute", bottom: 6, left: 6, display: "flex", alignItems: "center", gap: 0.6, bgcolor: "rgba(0,0,0,0.65)", px: 1, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                {peer.isMuted && <MicOffIcon sx={{ fontSize: compact ? 11 : 13, color: "#ef4444" }} />}
+                <Typography sx={{ fontSize: compact ? 10 : 12, fontWeight: 700 }}>{peer.userName}</Typography>
             </Box>
-            {/* Role badge */}
-            <Box sx={{ position: "absolute", top: 10, right: 10, bgcolor: peer.role === "Teacher" ? "rgba(124,58,237,0.75)" : "rgba(30,41,59,0.8)", px: 1.5, py: 0.3, borderRadius: "6px", backdropFilter: "blur(8px)", zIndex: 2 }}>
-                <Typography sx={{ fontSize: 10, fontWeight: 700, color: peer.role === "Teacher" ? "#ddd6fe" : "#94a3b8" }}>{peer.role}</Typography>
+            <Box sx={{ position: "absolute", top: 6, right: 6, bgcolor: peer.role === "Teacher" ? "rgba(124,58,237,0.8)" : "rgba(30,41,59,0.85)", px: 1, py: 0.2, borderRadius: "5px", backdropFilter: "blur(8px)", zIndex: 2 }}>
+                <Typography sx={{ fontSize: 9, fontWeight: 700, color: peer.role === "Teacher" ? "#ddd6fe" : "#94a3b8" }}>{peer.role}</Typography>
             </Box>
+            {isPresenter && (
+                <Box sx={{ position: "absolute", top: 6, left: 6, bgcolor: "rgba(234,179,8,0.85)", px: 1, py: 0.2, borderRadius: "5px", zIndex: 2 }}>
+                    <Typography sx={{ fontSize: 9, fontWeight: 700 }}>⭐ PRESENTER</Typography>
+                </Box>
+            )}
         </Box>
     );
 };
