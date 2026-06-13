@@ -10,6 +10,7 @@ import {
 
 import { getAllNotices } from "../redux/noticeRelated/noticeHandle";
 import TableViewTemplate from "./TableViewTemplate";
+import LinkifyText from "./LinkifyText";
 
 const SeeNotice = () => {
     const dispatch = useDispatch();
@@ -77,7 +78,7 @@ const SeeNotice = () => {
 
             return {
                 title: notice.title,
-                details: notice.details,
+                details: <LinkifyText text={notice.details} />,
                 date:
                     date.toString() !== "Invalid Date"
                         ? date.toISOString().substring(0, 10)

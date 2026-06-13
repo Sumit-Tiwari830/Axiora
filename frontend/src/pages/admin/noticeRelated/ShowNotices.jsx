@@ -23,6 +23,8 @@ import {
     GreenButton,
 } from "../../../components/buttonStyles";
 
+import LinkifyText from "../../../components/LinkifyText";
+
 const ShowNotices = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -89,7 +91,7 @@ const ShowNotices = () => {
     const noticeRows =
         noticesList?.map((notice) => ({
             title: notice.title,
-            details: notice.details,
+            details: <LinkifyText text={notice.details} />,
             date: notice.date
                 ? new Date(notice.date)
                     .toISOString()
