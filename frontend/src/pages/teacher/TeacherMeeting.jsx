@@ -20,14 +20,19 @@ import {
     Tooltip,
     Snackbar,
     Alert,
-    Chip
+    Chip,
+    Switch
 } from "@mui/material";
 import { 
     VideoCall as VideoCallIcon, 
     Autorenew as AutorenewIcon,
     ContentCopy as ContentCopyIcon,
     Groups as GroupsIcon,
-    Lock as LockIcon
+    Lock as LockIcon,
+    Mic as MicIcon,
+    MicOff as MicOffIcon,
+    Videocam as VideocamIcon,
+    VideocamOff as VideocamOffIcon
 } from "@mui/icons-material";
 import { io } from "socket.io-client";
 
@@ -48,7 +53,9 @@ const TeacherMeeting = () => {
     const [password, setPassword] = useState("");
     const [inviteType, setInviteType] = useState("all"); // "all" or "manual"
     const [selectedStudents, setSelectedStudents] = useState([]);
-    
+    const [allowVoice, setAllowVoice] = useState(true);
+    const [allowVideo, setAllowVideo] = useState(true);
+
     const [loader, setLoader] = useState(false);
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
@@ -144,8 +151,8 @@ const TeacherMeeting = () => {
             console.error("Socket emit error:", err);
         }
 
-        // Redirect teacher directly to the meeting room
-        navigate(`${meetingUrl}?pass=${password}`);
+        // Redirect teacher directly to the meeting room (pass moderation settings)
+        navigate(`${meetingUrl}?pass=${password}&allowVoice=${allowVoice}&allowVideo=${allowVideo}`);
     };
 
     const copyToClipboard = (text) => {
@@ -232,6 +239,39 @@ const TeacherMeeting = () => {
                                     <AutorenewIcon />
                                 </IconButton>
                             </Tooltip>
+                        </Box>
+                    </Box>
+
+                    {/* Moderation Settings */}
+                    <Box sx={{ mb: 4, p: 2.5, borderRadius: "16px", background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.15)" }}>
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                            🛡️ Student Permissions (Set at launch)
+                        </Typography>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    {allowVoice ? <MicIcon fontSize="small" sx={{ color: "#22c55e" }} /> : <MicOffIcon fontSize="small" sx={{ color: "#ef4444" }} />}
+                                    <Box>
+                                        <Typography variant="body2" fontWeight={600}>Student Microphones</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {allowVoice ? "Students can unmute themselves" : "All students muted until you allow"}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                <Switch checked={allowVoice} onChange={(e) => setAllowVoice(e.target.checked)} color="success" />
+                            </Box>
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    {allowVideo ? <VideocamIcon fontSize="small" sx={{ color: "#22c55e" }} /> : <VideocamOffIcon fontSize="small" sx={{ color: "#ef4444" }} />}
+                                    <Box>
+                                        <Typography variant="body2" fontWeight={600}>Student Cameras</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {allowVideo ? "Students can enable their camera" : "All cameras off until you allow"}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                <Switch checked={allowVideo} onChange={(e) => setAllowVideo(e.target.checked)} color="success" />
+                            </Box>
                         </Box>
                     </Box>
 
