@@ -62,25 +62,33 @@ const AdminDashboard = () => {
     }
 
     return (
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
             <CssBaseline />
 
             <AppBar
                 open={open}
                 position="fixed"
                 sx={{
-                    background: '#ffffff',
+                    background: 'rgba(255, 255, 255, 0.72)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
                     color: '#0f172a',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
                 }}
             >
-                <Toolbar sx={{ pr: '24px' }}>
+                <Toolbar sx={{ pr: '24px', minHeight: { xs: 64 } }}>
                     <IconButton
                         edge="start"
                         onClick={toggleDrawer}
                         sx={{
                             mr: 3,
-                            color: '#2563eb',
+                            color: '#4f46e5',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                transform: 'scale(1.05)',
+                            },
                             ...(open && { display: 'none' }),
                         }}
                     >
@@ -94,10 +102,12 @@ const AdminDashboard = () => {
                         sx={{
                             flexGrow: 1,
                             fontWeight: 700,
+                            fontSize: '1.15rem',
                             color: '#0f172a',
+                            letterSpacing: '-0.01em',
                         }}
                     >
-                        AXIORA Admin Portal
+                        Axiora Admin
                     </Typography>
 
                     <AccountMenu />
@@ -110,14 +120,21 @@ const AdminDashboard = () => {
                 sx={open ? styles.drawerStyled : styles.hideDrawer}
             >
                 <Toolbar sx={styles.toolBarStyled}>
-                    <IconButton onClick={toggleDrawer}>
+                    <IconButton
+                        onClick={toggleDrawer}
+                        sx={{
+                            color: 'rgba(255,255,255,0.7)',
+                            '&:hover': {
+                                color: '#ffffff',
+                                background: 'rgba(255,255,255,0.1)',
+                            },
+                        }}
+                    >
                         <ChevronLeftIcon />
                     </IconButton>
                 </Toolbar>
 
-                <Divider />
-
-                <List component="nav">
+                <List component="nav" sx={{ px: 0.5 }}>
                     <SideBar />
                 </List>
             </Drawer>
@@ -306,12 +323,12 @@ export default AdminDashboard;
 
 const styles = {
     boxStyled: {
-        background:
-            'linear-gradient(135deg,#f8fafc,#eef2ff,#f5f3ff)',
+        background: '#f0f2f8',
         flexGrow: 1,
         height: '100vh',
         overflow: 'auto',
-        padding: '20px',
+        padding: '24px',
+        transition: 'all 0.3s ease',
     },
 
     toolBarStyled: {
@@ -319,7 +336,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'flex-end',
         px: 1,
-        background: '#ffffff',
+        background: 'transparent',
     },
 
     drawerStyled: {

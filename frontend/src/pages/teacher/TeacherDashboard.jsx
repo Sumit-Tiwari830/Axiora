@@ -47,18 +47,34 @@ const TeacherDashboard = () => {
     }
 
     return (
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", minHeight: "100vh" }}>
             <CssBaseline />
 
-            <AppBar position="absolute" open={open}>
-                <Toolbar sx={{ pr: "24px" }}>
+            <AppBar
+                position="fixed"
+                open={open}
+                sx={{
+                    background: 'rgba(255, 255, 255, 0.72)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    color: '#0f172a',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
+                }}
+            >
+                <Toolbar sx={{ pr: "24px", minHeight: { xs: 64 } }}>
                     <IconButton
                         edge="start"
-                        color="inherit"
                         aria-label="open drawer"
                         onClick={toggleDrawer}
                         sx={{
-                            marginRight: "36px",
+                            mr: 3,
+                            color: '#4f46e5',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                transform: 'scale(1.05)',
+                            },
                             ...(open && {
                                 display: "none",
                             }),
@@ -70,14 +86,16 @@ const TeacherDashboard = () => {
                     <Typography
                         component="h1"
                         variant="h6"
-                        color="inherit"
                         noWrap
                         sx={{
                             flexGrow: 1,
                             fontWeight: 700,
+                            fontSize: '1.15rem',
+                            color: '#0f172a',
+                            letterSpacing: '-0.01em',
                         }}
                     >
-                        Teacher Dashboard
+                        Teacher Portal
                     </Typography>
 
                     <AccountMenu />
@@ -94,14 +112,21 @@ const TeacherDashboard = () => {
                 }
             >
                 <Toolbar sx={styles.toolBarStyled}>
-                    <IconButton onClick={toggleDrawer}>
+                    <IconButton
+                        onClick={toggleDrawer}
+                        sx={{
+                            color: 'rgba(255,255,255,0.7)',
+                            '&:hover': {
+                                color: '#ffffff',
+                                background: 'rgba(255,255,255,0.1)',
+                            },
+                        }}
+                    >
                         <ChevronLeftIcon />
                     </IconButton>
                 </Toolbar>
 
-                <Divider />
-
-                <List component="nav">
+                <List component="nav" sx={{ px: 0.5 }}>
                     <TeacherSideBar />
                 </List>
             </Drawer>
@@ -185,20 +210,20 @@ export default TeacherDashboard;
 
 const styles = {
     boxStyled: {
-        backgroundColor: (theme) =>
-            theme.palette.mode === "light"
-                ? theme.palette.grey[100]
-                : theme.palette.grey[900],
+        background: '#f0f2f8',
         flexGrow: 1,
-        height: "100vh",
-        overflow: "auto",
+        height: '100vh',
+        overflow: 'auto',
+        padding: '24px',
+        transition: 'all 0.3s ease',
     },
 
     toolBarStyled: {
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-end",
-        px: [1],
+        px: 1,
+        background: 'transparent',
     },
 
     drawerStyled: {

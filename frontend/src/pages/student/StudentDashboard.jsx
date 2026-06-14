@@ -67,7 +67,7 @@ const StudentDashboard = () => {
         };
     }, [currentUser]);
 
-    // Render the MeetingRoom fullscreen when navigated to /meeting/...
+    // Render the MeetingRoom fullscreen when navigated to /meeting/..
     if (location.pathname.startsWith("/meeting/")) {
         return (
             <Routes>
@@ -77,19 +77,35 @@ const StudentDashboard = () => {
     }
 
     return (
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", minHeight: "100vh" }}>
             <CssBaseline />
 
             {/* Top Navbar */}
-            <AppBar position="absolute" open={open}>
-                <Toolbar sx={{ pr: 3 }}>
+            <AppBar
+                position="fixed"
+                open={open}
+                sx={{
+                    background: 'rgba(255, 255, 255, 0.72)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    color: '#0f172a',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
+                }}
+            >
+                <Toolbar sx={{ pr: '24px', minHeight: { xs: 64 } }}>
                     <IconButton
                         edge="start"
-                        color="inherit"
                         aria-label="open drawer"
                         onClick={toggleDrawer}
                         sx={{
                             mr: 3,
+                            color: '#4f46e5',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                transform: 'scale(1.05)',
+                            },
                             ...(open && { display: "none" }),
                         }}
                     >
@@ -102,10 +118,13 @@ const StudentDashboard = () => {
                         noWrap
                         sx={{
                             flexGrow: 1,
-                            fontWeight: 600,
+                            fontWeight: 700,
+                            fontSize: '1.15rem',
+                            color: '#0f172a',
+                            letterSpacing: '-0.01em',
                         }}
                     >
-                        Student Dashboard
+                        Student Portal
                     </Typography>
 
                     <AccountMenu />
@@ -119,14 +138,21 @@ const StudentDashboard = () => {
                 sx={open ? styles.drawerStyled : styles.hideDrawer}
             >
                 <Toolbar sx={styles.toolBarStyled}>
-                    <IconButton onClick={toggleDrawer}>
+                    <IconButton
+                        onClick={toggleDrawer}
+                        sx={{
+                            color: 'rgba(255,255,255,0.7)',
+                            '&:hover': {
+                                color: '#ffffff',
+                                background: 'rgba(255,255,255,0.1)',
+                            },
+                        }}
+                    >
                         <ChevronLeftIcon />
                     </IconButton>
                 </Toolbar>
 
-                <Divider />
-
-                <List component="nav">
+                <List component="nav" sx={{ px: 0.5 }}>
                     <StudentSideBar />
                 </List>
             </Drawer>
@@ -138,81 +164,111 @@ const StudentDashboard = () => {
             >
                 <Toolbar />
 
-                <Box sx={{ p: 3 }}>
-                    <Routes>
-                        <Route
-                            path="/"
-                            element={<StudentHomePage />}
-                        />
+                <Routes>
+                    <Route
+                        path="/"
+                        element={<StudentHomePage />}
+                    />
 
-                        <Route
-                            path="/Student/dashboard"
-                            element={<StudentHomePage />}
-                        />
+                    <Route
+                        path="/Student/dashboard"
+                        element={<StudentHomePage />}
+                    />
 
-                        <Route
-                            path="/Student/profile"
-                            element={<StudentProfile />}
-                        />
+                    <Route
+                        path="/Student/profile"
+                        element={<StudentProfile />}
+                    />
 
-                        <Route
-                            path="/Student/subjects"
-                            element={<StudentSubjects />}
-                        />
+                    <Route
+                        path="/Student/subjects"
+                        element={<StudentSubjects />}
+                    />
 
-                        <Route
-                            path="/Student/attendance"
-                            element={<ViewStdAttendance />}
-                        />
+                    <Route
+                        path="/Student/attendance"
+                        element={<ViewStdAttendance />}
+                    />
 
-                        <Route
-                            path="/Student/complain"
-                            element={<StudentComplain />}
-                        />
+                    <Route
+                        path="/Student/complain"
+                        element={<StudentComplain />}
+                    />
 
-                        <Route
-                            path="/Student/ask-doubt"
-                            element={<StudentAskDoubt />}
-                        />
+                    <Route
+                        path="/Student/ask-doubt"
+                        element={<StudentAskDoubt />}
+                    />
 
-                        <Route
-                            path="/Student/fees"
-                            element={<StudentFee />}
-                        />
+                    <Route
+                        path="/Student/fees"
+                        element={<StudentFee />}
+                    />
 
-                        <Route
-                            path="/logout"
-                            element={<Logout />}
-                        />
+                    <Route
+                        path="/logout"
+                        element={<Logout />}
+                    />
 
-                        <Route
-                            path="*"
-                            element={<Navigate to="/" />}
-                        />
-                    </Routes>
-                </Box>
+                    <Route
+                        path="*"
+                        element={<Navigate to="/" />}
+                    />
+                </Routes>
             </Box>
+
             {/* Live Meeting Invite Dialog */}
-            <Dialog open={!!meetingInvite} onClose={() => setMeetingInvite(null)}>
-                <DialogTitle sx={{ fontWeight: 700, color: "#7c3aed" }}>
+            <Dialog
+                open={!!meetingInvite}
+                onClose={() => setMeetingInvite(null)}
+                PaperProps={{
+                    sx: {
+                        borderRadius: '16px',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(124, 58, 237, 0.15)',
+                        overflow: 'hidden',
+                    },
+                }}
+            >
+                <Box
+                    sx={{
+                        height: 4,
+                        background: 'linear-gradient(90deg, #4f46e5, #7c3aed, #06b6d4)',
+                    }}
+                />
+                <DialogTitle sx={{
+                    fontWeight: 700,
+                    color: "#7c3aed",
+                    fontSize: '1.25rem',
+                    pt: 3,
+                }}>
                     🔴 Live Class Started!
                 </DialogTitle>
                 <DialogContent>
-                    <DialogContentText sx={{ mb: 1, color: "text.primary", fontWeight: 600 }}>
+                    <DialogContentText sx={{ mb: 1.5, color: "text.primary", fontWeight: 600, fontSize: '0.95rem' }}>
                         {meetingInvite?.teacher} has started a live class for {meetingInvite?.className}.
                     </DialogContentText>
-                    <DialogContentText sx={{ mb: 1 }}>
+                    <DialogContentText sx={{ mb: 1, color: 'text.secondary' }}>
                         <strong>Subject:</strong> {meetingInvite?.subject}
                     </DialogContentText>
-                    <DialogContentText sx={{ mb: 1 }}>
+                    <DialogContentText sx={{ mb: 1, color: 'text.secondary' }}>
                         <strong>Code:</strong> {meetingInvite?.code}
                     </DialogContentText>
-                    <DialogContentText>
+                    <DialogContentText sx={{ color: 'text.secondary' }}>
                         <strong>Password:</strong> {meetingInvite?.password}
                     </DialogContentText>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <Button onClick={() => setMeetingInvite(null)} color="inherit" sx={{ fontWeight: 600 }}>
+                <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+                    <Button
+                        onClick={() => setMeetingInvite(null)}
+                        color="inherit"
+                        sx={{
+                            fontWeight: 600,
+                            borderRadius: '10px',
+                            px: 2.5,
+                            textTransform: 'none',
+                        }}
+                    >
                         Decline
                     </Button>
                     <Button
@@ -222,8 +278,18 @@ const StudentDashboard = () => {
                             navigate(`/meeting/${invite.code}?pass=${invite.password}`);
                         }}
                         variant="contained"
-                        color="secondary"
-                        sx={{ fontWeight: 700 }}
+                        sx={{
+                            fontWeight: 700,
+                            borderRadius: '10px',
+                            px: 3,
+                            textTransform: 'none',
+                            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                            boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+                            '&:hover': {
+                                background: 'linear-gradient(135deg, #3730a3, #5b21b6)',
+                                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.45)',
+                            },
+                        }}
                     >
                         Join Class
                     </Button>
@@ -237,13 +303,12 @@ export default StudentDashboard;
 
 const styles = {
     boxStyled: {
-        backgroundColor: (theme) =>
-            theme.palette.mode === "light"
-                ? theme.palette.grey[100]
-                : theme.palette.grey[900],
+        background: '#f0f2f8',
         flexGrow: 1,
-        minHeight: "100vh",
-        overflow: "auto",
+        height: '100vh',
+        overflow: 'auto',
+        padding: '24px',
+        transition: 'all 0.3s ease',
     },
 
     toolBarStyled: {
@@ -251,6 +316,7 @@ const styles = {
         alignItems: "center",
         justifyContent: "flex-end",
         px: 1,
+        background: 'transparent',
     },
 
     drawerStyled: {

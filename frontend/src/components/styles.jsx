@@ -11,24 +11,22 @@ const drawerWidth = 260;
 
 export const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
-        background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+        backgroundColor: "transparent",
         color: "#ffffff",
-        fontWeight: 700,
-        fontSize: "15px",
+        fontWeight: 600,
+        fontSize: "0.8125rem",
+        letterSpacing: "0.025em",
+        padding: "14px 16px",
+        whiteSpace: "nowrap",
     },
     [`&.${tableCellClasses.body}`]: {
-        fontSize: 14,
+        fontSize: "0.875rem",
+        padding: "12px 16px",
+        color: "#334155",
     },
 }));
 
 export const StyledTableRow = styled(TableRow)(({ theme }) => ({
-    "&:nth-of-type(odd)": {
-        backgroundColor: "#f8fafc",
-    },
-    "&:hover": {
-        backgroundColor: "#eef2ff",
-        transition: "0.2s ease",
-    },
     "&:last-child td, &:last-child th": {
         border: 0,
     },
@@ -38,18 +36,22 @@ export const AppBar = styled(MuiAppBar, {
     shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
-    background: "#ffffff",
+    background: "rgba(255, 255, 255, 0.72)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
     color: "#0f172a",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+    boxShadow: "none",
+    borderBottom: "1px solid rgba(148, 163, 184, 0.15)",
+    minHeight: 64,
     transition: theme.transitions.create(["width", "margin"], {
-        easing: theme.transitions.easing.sharp,
+        easing: theme.transitions.easing.easeInOut,
         duration: theme.transitions.duration.leavingScreen,
     }),
     ...(open && {
         marginLeft: drawerWidth,
         width: `calc(100% - ${drawerWidth}px)`,
         transition: theme.transitions.create(["width", "margin"], {
-            easing: theme.transitions.easing.sharp,
+            easing: theme.transitions.easing.easeInOut,
             duration: theme.transitions.duration.enteringScreen,
         }),
     }),
@@ -62,20 +64,28 @@ export const Drawer = styled(MuiDrawer, {
         position: "relative",
         whiteSpace: "nowrap",
         width: drawerWidth,
-        color: "#ffffff",
-        background: "linear-gradient(180deg,#2563eb,#7c3aed)",
+        color: "rgba(255, 255, 255, 0.92)",
+        background: "linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)",
         border: "none",
-        boxShadow: "8px 0 24px rgba(37,99,235,0.18)",
+        boxShadow: "4px 0 24px rgba(15, 23, 42, 0.25)",
         transition: theme.transitions.create("width", {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
+            easing: theme.transitions.easing.easeInOut,
+            duration: 280,
         }),
         boxSizing: "border-box",
+        overflowX: "hidden",
+        "&::-webkit-scrollbar": {
+            width: 4,
+        },
+        "&::-webkit-scrollbar-thumb": {
+            background: "rgba(255, 255, 255, 0.15)",
+            borderRadius: 4,
+        },
         ...(!open && {
             overflowX: "hidden",
             transition: theme.transitions.create("width", {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
+                easing: theme.transitions.easing.easeInOut,
+                duration: 280,
             }),
             width: theme.spacing(8),
             [theme.breakpoints.up("sm")]: {
