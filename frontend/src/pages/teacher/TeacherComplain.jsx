@@ -21,7 +21,9 @@ const TeacherComplain = () => {
     );
 
     const [complaint, setComplaint] = useState("");
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState(
+        new Date().toISOString().split("T")[0]
+    );
 
     const [loader, setLoader] = useState(false);
     const [message, setMessage] = useState("");
