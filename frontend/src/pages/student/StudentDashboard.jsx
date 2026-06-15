@@ -45,6 +45,18 @@ const StudentDashboard = () => {
         setOpen((prev) => !prev);
     };
 
+    const getBreadcrumbs = () => {
+        const path = location.pathname;
+        if (path === "/" || path === "/Student/dashboard") return "Dashboard";
+        if (path.startsWith("/Student/profile")) return "Profile";
+        if (path.startsWith("/Student/subjects")) return "Subjects";
+        if (path.startsWith("/Student/attendance")) return "Attendance";
+        if (path.startsWith("/Student/complain")) return "Complaints";
+        if (path.startsWith("/Student/ask-doubt")) return "AI Doubt Solver";
+        if (path.startsWith("/Student/fees")) return "Fees";
+        return "Portal";
+    };
+
     // Socket.io: Listen for meeting invitations from teacher
     useEffect(() => {
         if (!currentUser) return;
@@ -85,12 +97,12 @@ const StudentDashboard = () => {
                 position="fixed"
                 open={open}
                 sx={{
-                    background: 'rgba(255, 255, 255, 0.72)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    background: 'rgba(248, 250, 252, 0.8)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     color: '#0f172a',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
-                    borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
+                    boxShadow: 'none',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
                 }}
             >
                 <Toolbar sx={{ pr: '24px', minHeight: { xs: 64 } }}>
@@ -112,20 +124,29 @@ const StudentDashboard = () => {
                         <MenuIcon />
                     </IconButton>
 
-                    <Typography
-                        component="h1"
-                        variant="h6"
-                        noWrap
-                        sx={{
-                            flexGrow: 1,
-                            fontWeight: 700,
-                            fontSize: '1.15rem',
-                            color: '#0f172a',
-                            letterSpacing: '-0.01em',
-                        }}
-                    >
-                        Student Portal
-                    </Typography>
+                    <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#64748b',
+                            }}
+                        >
+                            Student Portal
+                        </Typography>
+                        <Typography sx={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 500 }}>/</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#0f172a',
+                            }}
+                        >
+                            {getBreadcrumbs()}
+                        </Typography>
+                    </Box>
 
                     <AccountMenu />
                 </Toolbar>
@@ -303,7 +324,7 @@ export default StudentDashboard;
 
 const styles = {
     boxStyled: {
-        background: '#f0f2f8',
+        background: '#f8fafc',
         flexGrow: 1,
         height: '100vh',
         overflow: 'auto',

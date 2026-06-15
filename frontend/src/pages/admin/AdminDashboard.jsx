@@ -53,6 +53,20 @@ const AdminDashboard = () => {
         setOpen(!open);
     };
 
+    const getBreadcrumbs = () => {
+        const path = location.pathname;
+        if (path === "/" || path === "/Admin/dashboard") return "Dashboard";
+        if (path.startsWith("/Admin/profile")) return "Profile";
+        if (path.startsWith("/Admin/complains")) return "Complaints";
+        if (path.startsWith("/Admin/fees") || path.startsWith("/Admin/addfee")) return "Fees";
+        if (path.startsWith("/Admin/notices") || path.startsWith("/Admin/addnotice")) return "Notices";
+        if (path.startsWith("/Admin/subjects") || path.startsWith("/Admin/addsubject")) return "Subjects";
+        if (path.startsWith("/Admin/classes") || path.startsWith("/Admin/addclass")) return "Classes";
+        if (path.startsWith("/Admin/students") || path.startsWith("/Admin/addstudents")) return "Students";
+        if (path.startsWith("/Admin/teachers") || path.startsWith("/Admin/addteacher")) return "Teachers";
+        return "Admin";
+    };
+
     if (location.pathname.startsWith("/meeting/")) {
         return (
             <Routes>
@@ -69,12 +83,12 @@ const AdminDashboard = () => {
                 open={open}
                 position="fixed"
                 sx={{
-                    background: 'rgba(255, 255, 255, 0.72)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    background: 'rgba(248, 250, 252, 0.8)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     color: '#0f172a',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
-                    borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
+                    boxShadow: 'none',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
                 }}
             >
                 <Toolbar sx={{ pr: '24px', minHeight: { xs: 64 } }}>
@@ -95,20 +109,29 @@ const AdminDashboard = () => {
                         <MenuIcon />
                     </IconButton>
 
-                    <Typography
-                        component="h1"
-                        variant="h6"
-                        noWrap
-                        sx={{
-                            flexGrow: 1,
-                            fontWeight: 700,
-                            fontSize: '1.15rem',
-                            color: '#0f172a',
-                            letterSpacing: '-0.01em',
-                        }}
-                    >
-                        Axiora Admin
-                    </Typography>
+                    <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#64748b',
+                            }}
+                        >
+                            Admin Portal
+                        </Typography>
+                        <Typography sx={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 500 }}>/</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#0f172a',
+                            }}
+                        >
+                            {getBreadcrumbs()}
+                        </Typography>
+                    </Box>
 
                     <AccountMenu />
                 </Toolbar>
@@ -323,7 +346,7 @@ export default AdminDashboard;
 
 const styles = {
     boxStyled: {
-        background: '#f0f2f8',
+        background: '#f8fafc',
         flexGrow: 1,
         height: '100vh',
         overflow: 'auto',

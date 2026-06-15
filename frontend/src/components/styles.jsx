@@ -66,7 +66,7 @@ export const Drawer = styled(MuiDrawer, {
         width: drawerWidth,
         color: "rgba(255, 255, 255, 0.92)",
         background: "linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)",
-        border: "none",
+        borderRight: "1px solid rgba(255, 255, 255, 0.06)",
         boxShadow: "4px 0 24px rgba(15, 23, 42, 0.25)",
         transition: theme.transitions.create("width", {
             easing: theme.transitions.easing.easeInOut,

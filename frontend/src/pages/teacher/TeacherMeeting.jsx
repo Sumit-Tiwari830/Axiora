@@ -259,20 +259,50 @@ const TeacherMeeting = () => {
                                         InputProps={{
                                             readOnly: true,
                                             endAdornment: (
-                                                <InputAdornment position="end">
+                                                <InputAdornment position="end" sx={{ gap: 0.5 }}>
                                                     <Tooltip title="Copy code">
-                                                        <IconButton onClick={() => copyToClipboard(meetingCode)}>
-                                                            <ContentCopyIcon sx={{ color: "#7c3aed" }} />
+                                                        <IconButton 
+                                                            onClick={() => copyToClipboard(meetingCode)}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <ContentCopyIcon sx={{ fontSize: 16 }} />
                                                         </IconButton>
                                                     </Tooltip>
                                                     <Tooltip title="Generate new code">
-                                                        <IconButton onClick={() => setMeetingCode(generateMeetingCode())}>
-                                                            <AutorenewIcon sx={{ color: "#7c3aed" }} />
+                                                        <IconButton 
+                                                            onClick={() => setMeetingCode(generateMeetingCode())}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <AutorenewIcon sx={{ fontSize: 16 }} />
                                                         </IconButton>
                                                     </Tooltip>
                                                 </InputAdornment>
                                             ),
-                                            sx: { fontFamily: "monospace", fontWeight: 700, letterSpacing: 1, fontSize: 16, borderRadius: "14px" }
+                                            sx: { 
+                                                fontFamily: "monospace", 
+                                                fontWeight: 700, 
+                                                letterSpacing: 1, 
+                                                fontSize: 16, 
+                                                borderRadius: "14px",
+                                                backgroundColor: "#fafbfc"
+                                            }
+                                        }}
+                                        sx={{
+                                            "& .MuiOutlinedInput-root": {
+                                                "& fieldset": { borderColor: "rgba(226, 232, 240, 0.8)" },
+                                                "&:hover fieldset": { borderColor: "rgba(124, 58, 237, 0.3)" },
+                                                "&.Mui-focused fieldset": { borderColor: "#7c3aed" }
+                                            }
                                         }}
                                     />
                                 </Grid>
@@ -287,20 +317,50 @@ const TeacherMeeting = () => {
                                         required
                                         InputProps={{
                                             endAdornment: (
-                                                <InputAdornment position="end">
+                                                <InputAdornment position="end" sx={{ gap: 0.5 }}>
                                                     <Tooltip title="Copy password">
-                                                        <IconButton onClick={() => copyToClipboard(password)}>
-                                                            <ContentCopyIcon sx={{ color: "#7c3aed" }} />
+                                                        <IconButton 
+                                                            onClick={() => copyToClipboard(password)}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <ContentCopyIcon sx={{ fontSize: 16 }} />
                                                         </IconButton>
                                                     </Tooltip>
                                                     <Tooltip title="Generate new password">
-                                                        <IconButton onClick={() => setPassword(generatePassword())}>
-                                                            <AutorenewIcon sx={{ color: "#7c3aed" }} />
+                                                        <IconButton 
+                                                            onClick={() => setPassword(generatePassword())}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <AutorenewIcon sx={{ fontSize: 16 }} />
                                                         </IconButton>
                                                     </Tooltip>
                                                 </InputAdornment>
                                             ),
-                                            sx: { fontFamily: "monospace", fontWeight: 700, letterSpacing: 2, fontSize: 16, borderRadius: "14px" }
+                                            sx: { 
+                                                fontFamily: "monospace", 
+                                                fontWeight: 700, 
+                                                letterSpacing: 2, 
+                                                fontSize: 16, 
+                                                borderRadius: "14px",
+                                                backgroundColor: "#fafbfc"
+                                            }
+                                        }}
+                                        sx={{
+                                            "& .MuiOutlinedInput-root": {
+                                                "& fieldset": { borderColor: "rgba(226, 232, 240, 0.8)" },
+                                                "&:hover fieldset": { borderColor: "rgba(124, 58, 237, 0.3)" },
+                                                "&.Mui-focused fieldset": { borderColor: "#7c3aed" }
+                                            }
                                         }}
                                     />
                                 </Grid>
@@ -350,7 +410,7 @@ const TeacherMeeting = () => {
                                         <CardContent sx={{ p: "20px !important", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                                                 <Avatar sx={{ background: allowVideo ? "#22c55e" : "#ef4444", width: 40, height: 40 }}>
-                                                    {allowVideo ? <Videocam /> : <VideocamOff />}
+                                                    {allowVideo ? <VideocamIcon /> : <VideocamOffIcon />}
                                                 </Avatar>
                                                 <Box>
                                                     <Typography fontWeight={700} fontSize="0.95rem">Cameras</Typography>
