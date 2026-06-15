@@ -333,11 +333,15 @@ io.on("connection", (socket) => {
             const endedBy = user.userName;
 
             // Mark ended in MongoDB
-            await Meeting.findOneAndUpdate(
-                { roomId },
-                { ended: true, endedAt, endedBy },
-                { new: true, upsert: true }
-            );
+            try {
+                await Meeting.findOneAndUpdate(
+                    { roomId },
+                    { ended: true, endedAt, endedBy },
+                    { new: true, upsert: true }
+                );
+            } catch (dbErr) {
+                console.error("MongoDB update ended failed:", dbErr);
+            }
 
             // Mark room as ended in memory
             room.ended = true;
