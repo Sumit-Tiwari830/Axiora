@@ -5,7 +5,7 @@ import { getAllTeachers } from '../../../redux/teacherRelated/teacherHandle';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
 import {
     Paper, Table, TableBody, TableContainer,
-    TableHead, TablePagination, Button, Box, IconButton,
+    TableHead, TablePagination, Button, Box, IconButton, Typography,
 } from '@mui/material';
 import { PersonRemove as PersonRemoveIcon, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
 import { StyledTableCell, StyledTableRow } from '../../../components/styles';
@@ -151,34 +151,20 @@ const ShowTeachers = () => {
                         "0 10px 30px rgba(0,0,0,0.08)",
                 }}
             >
-                <Box
-                    sx={{
-                        p: 3,
-                        borderBottom:
-                            "1px solid #e2e8f0",
-                        background: "#fff",
-                    }}
-                >
-                    <h2
-                        style={{
-                            margin: 0,
-                            color: "#0f172a",
-                            fontWeight: 700,
-                        }}
-                    >
-                        Teachers
-                    </h2>
-
-                    <p
-                        style={{
-                            marginTop: "8px",
-                            color: "#64748b",
-                        }}
-                    >
-                        Manage teachers, subjects and
-                        class assignments.
-                    </p>
-                </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Box sx={{ width: 48, height: 48, borderRadius: "14px", background: "linear-gradient(135deg, #10b981, #059669)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
+                                <PersonAddAlt1Icon sx={{ color: "#fff", fontSize: 24 }} />
+                            </Box>
+                            <Box>
+                                <Typography variant="h5" fontWeight={800} color="#0f172a">Teachers</Typography>
+                                <Typography color="#64748b" fontSize="0.85rem">{rows.length} teacher{rows.length !== 1 ? 's' : ''} assigned</Typography>
+                            </Box>
+                        </Box>
+                        <GreenButton variant="contained" onClick={() => navigate("/Admin/teachers/chooseclass")} sx={{ borderRadius: "12px", px: 3, fontWeight: 700, textTransform: "none" }}>
+                            + Add Teacher
+                        </GreenButton>
+                    </Box>
 
                 <TableContainer>
                     <Table stickyHeader>
