@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import {
     LogoutOutlined as LogoutIcon,
-    ArrowBackOutlined as ArrowBackIcon
+    CancelOutlined as CancelIcon
 } from "@mui/icons-material";
 
 const Logout = () => {
@@ -33,130 +33,124 @@ const Logout = () => {
         navigate(-1);
     };
 
-    const userInitial = currentUser?.name?.charAt(0)?.toUpperCase() || "U";
     const userName = currentUser?.name || "User";
 
     return (
         <Box
             sx={{
-                minHeight: "100vh",
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                background: "linear-gradient(-45deg, #1e1b4b, #312e81, #4f46e5, #0f172a)",
-                backgroundSize: "400% 400%",
-                animation: "gradientAnimation 15s ease infinite",
-                px: 2,
-                "@keyframes gradientAnimation": {
-                    "0%": { backgroundPosition: "0% 50%" },
-                    "50%": { backgroundPosition: "100% 50%" },
-                    "100%": { backgroundPosition: "0% 50%" }
-                }
+                background: "rgba(15, 23, 42, 0.55)", // Soft dark overlay
+                backdropFilter: "blur(12px)", // Blurs the dashboard behind
+                WebkitBackdropFilter: "blur(12px)",
+                zIndex: 3000, // Sits above sidebar and appbar
+                px: 2
             }}
         >
-            <Zoom in={true} style={{ transitionDelay: "100ms" }}>
+            <Zoom in={true} style={{ transitionDelay: "50ms" }}>
                 <Paper
-                    elevation={24}
+                    elevation={0}
                     sx={{
                         width: "100%",
-                        maxWidth: 440,
-                        p: 5,
-                        borderRadius: "28px",
+                        maxWidth: 400,
+                        p: 4,
+                        borderRadius: "24px",
                         textAlign: "center",
-                        background: "rgba(255, 255, 255, 0.08)",
-                        backdropFilter: "blur(20px)",
-                        WebkitBackdropFilter: "blur(20px)",
-                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                        boxShadow: "0 24px 50px rgba(0, 0, 0, 0.3)",
-                        color: "#fff"
+                        background: "#ffffff",
+                        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                        border: "1px solid rgba(226, 232, 240, 0.8)",
+                        color: "#0f172a"
                     }}
                 >
-                    <Fade in={true} timeout={800}>
+                    <Fade in={true} timeout={600}>
                         <Box>
-                            <Typography
-                                variant="h4"
-                                fontWeight={900}
+                            {/* Glowing Exit Icon */}
+                            <Avatar
                                 sx={{
-                                    mb: 4,
-                                    letterSpacing: "-0.03em",
-                                    background: "linear-gradient(135deg, #38bdf8, #818cf8)",
-                                    WebkitBackgroundClip: "text",
-                                    WebkitTextFillColor: "transparent"
+                                    width: 64,
+                                    height: 64,
+                                    background: "rgba(239, 68, 68, 0.09)",
+                                    color: "#ef4444",
+                                    border: "1px solid rgba(239, 68, 68, 0.15)",
+                                    mx: "auto",
+                                    mb: 3
                                 }}
                             >
-                                AXIORA
+                                <LogoutIcon sx={{ fontSize: 30 }} />
+                            </Avatar>
+
+                            <Typography
+                                variant="h5"
+                                fontWeight={800}
+                                sx={{
+                                    mb: 1,
+                                    letterSpacing: "-0.02em",
+                                    color: "#0f172a"
+                                }}
+                            >
+                                Log out of Axiora
                             </Typography>
 
-                            <Box sx={{ position: "relative", display: "inline-block", mb: 3 }}>
-                                <Avatar
-                                    sx={{
-                                        width: 100,
-                                        height: 100,
-                                        fontSize: "2.8rem",
-                                        fontWeight: 800,
-                                        background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                                        boxShadow: "0 0 30px rgba(168, 85, 247, 0.4)",
-                                        border: "4px solid rgba(255, 255, 255, 0.2)",
-                                        mx: "auto"
-                                    }}
-                                >
-                                    {userInitial}
-                                </Avatar>
-                            </Box>
-
-                            <Typography variant="h5" fontWeight={700} sx={{ mb: 1, color: "#f8fafc" }}>
-                                {userName}
-                            </Typography>
-                            
-                            <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.5)", mb: 4, px: 2 }}>
-                                Are you sure you want to sign out from your account? You will need to log back in to access your dashboard.
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    color: "#64748b", 
+                                    mb: 4, 
+                                    px: 1, 
+                                    lineHeight: 1.6 
+                                }}
+                            >
+                                Are you sure you want to log out, <strong>{userName}</strong>? You will need to re-authenticate to access your portals.
                             </Typography>
 
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {/* Side-by-side Button Layout */}
+                            <Box sx={{ display: "flex", gap: 2 }}>
                                 <Button
-                                    variant="contained"
-                                    onClick={handleLogout}
-                                    startIcon={<LogoutIcon />}
+                                    fullWidth
+                                    variant="outlined"
+                                    onClick={handleCancel}
                                     sx={{
-                                        py: 1.8,
-                                        borderRadius: "16px",
-                                        fontWeight: 700,
-                                        fontSize: "1rem",
+                                        py: 1.5,
+                                        borderRadius: "12px",
+                                        fontWeight: 600,
                                         textTransform: "none",
-                                        background: "linear-gradient(135deg, #ef4444, #b91c1c)",
-                                        boxShadow: "0 4px 20px rgba(239, 68, 68, 0.3)",
+                                        color: "#475569",
+                                        borderColor: "#cbd5e1",
                                         "&:hover": {
-                                            background: "linear-gradient(135deg, #dc2626, #991b1b)",
-                                            boxShadow: "0 6px 24px rgba(239, 68, 68, 0.4)",
-                                            transform: "translateY(-2px)"
+                                            borderColor: "#94a3b8",
+                                            background: "#f8fafc"
                                         },
-                                        transition: "all 0.2s"
+                                        transition: "all 0.15s"
                                     }}
                                 >
-                                    Yes, Logout
+                                    Cancel
                                 </Button>
 
                                 <Button
-                                    variant="outlined"
-                                    onClick={handleCancel}
-                                    startIcon={<ArrowBackIcon />}
+                                    fullWidth
+                                    variant="contained"
+                                    onClick={handleLogout}
                                     sx={{
-                                        py: 1.8,
-                                        borderRadius: "16px",
+                                        py: 1.5,
+                                        borderRadius: "12px",
                                         fontWeight: 700,
-                                        fontSize: "1rem",
                                         textTransform: "none",
-                                        color: "rgba(255, 255, 255, 0.8)",
-                                        borderColor: "rgba(255, 255, 255, 0.2)",
+                                        background: "#ef4444",
+                                        boxShadow: "0 2px 4px rgba(239, 68, 68, 0.15)",
                                         "&:hover": {
-                                            borderColor: "rgba(255, 255, 255, 0.6)",
-                                            background: "rgba(255, 255, 255, 0.05)",
-                                            transform: "translateY(-2px)"
+                                            background: "#dc2626",
+                                            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)"
                                         },
-                                        transition: "all 0.2s"
+                                        transition: "all 0.15s"
                                     }}
                                 >
-                                    Cancel & Return
+                                    Log Out
                                 </Button>
                             </Box>
                         </Box>
