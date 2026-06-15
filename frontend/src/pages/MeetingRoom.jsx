@@ -983,7 +983,17 @@ const MeetingRoom = () => {
                                         onChange={(e) => setChatInput(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && sendChat()}
                                         sx={{
-                                            "& .MuiOutlinedInput-root": { borderRadius: "14px", color: "#f1f5f9", bgcolor: "#1e293b", "& fieldset": { borderColor: "transparent" }, "&:hover fieldset": { borderColor: "rgba(99,102,241,0.4)" }, "&.Mui-focused fieldset": { borderColor: "#6366f1" } },
+                                            "& .MuiOutlinedInput-root": { 
+                                                borderRadius: "14px", 
+                                                color: "#f1f5f9", 
+                                                bgcolor: "#1e293b", 
+                                                "& fieldset": { borderColor: "transparent" }, 
+                                                "&:hover fieldset": { borderColor: "rgba(99,102,241,0.4)" }, 
+                                                "&.Mui-focused fieldset": { borderColor: "#6366f1" },
+                                                "&.Mui-focused": {
+                                                    backgroundColor: "#1e293b"
+                                                }
+                                            },
                                             "& .MuiInputBase-input::placeholder": { color: "#475569", opacity: 1 }
                                         }}
                                     />
@@ -1227,7 +1237,17 @@ const MeetingRoom = () => {
                             )
                         }}
                         sx={{
-                            "& .MuiOutlinedInput-root": { color: "#fff", borderRadius: "12px", "& fieldset": { borderColor: "rgba(99,102,241,0.3)" }, "&:hover fieldset": { borderColor: "#6366f1" }, "&.Mui-focused fieldset": { borderColor: "#6366f1" } },
+                            "& .MuiOutlinedInput-root": { 
+                                color: "#fff", 
+                                borderRadius: "12px", 
+                                backgroundColor: "#1e293b",
+                                "& fieldset": { borderColor: "rgba(99,102,241,0.3)" }, 
+                                "&:hover fieldset": { borderColor: "#6366f1" }, 
+                                "&.Mui-focused fieldset": { borderColor: "#6366f1" },
+                                "&.Mui-focused": {
+                                    backgroundColor: "#1e293b"
+                                }
+                            },
                             "& .MuiInputLabel-root": { color: "#64748b" },
                             "& .MuiInputLabel-root.Mui-focused": { color: "#6366f1" }
                         }}
