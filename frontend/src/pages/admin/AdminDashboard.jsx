@@ -53,6 +53,20 @@ const AdminDashboard = () => {
         setOpen(!open);
     };
 
+    const getBreadcrumbs = () => {
+        const path = location.pathname;
+        if (path === "/" || path === "/Admin/dashboard") return "Dashboard";
+        if (path.startsWith("/Admin/profile")) return "Profile";
+        if (path.startsWith("/Admin/complains")) return "Complaints";
+        if (path.startsWith("/Admin/fees") || path.startsWith("/Admin/addfee")) return "Fees";
+        if (path.startsWith("/Admin/notices") || path.startsWith("/Admin/addnotice")) return "Notices";
+        if (path.startsWith("/Admin/subjects") || path.startsWith("/Admin/addsubject")) return "Subjects";
+        if (path.startsWith("/Admin/classes") || path.startsWith("/Admin/addclass")) return "Classes";
+        if (path.startsWith("/Admin/students") || path.startsWith("/Admin/addstudents")) return "Students";
+        if (path.startsWith("/Admin/teachers") || path.startsWith("/Admin/addteacher")) return "Teachers";
+        return "Admin";
+    };
+
     if (location.pathname.startsWith("/meeting/")) {
         return (
             <Routes>
@@ -62,43 +76,62 @@ const AdminDashboard = () => {
     }
 
     return (
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
             <CssBaseline />
 
             <AppBar
                 open={open}
                 position="fixed"
                 sx={{
-                    background: '#ffffff',
+                    background: 'rgba(248, 250, 252, 0.8)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     color: '#0f172a',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    boxShadow: 'none',
+                    borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
                 }}
             >
-                <Toolbar sx={{ pr: '24px' }}>
+                <Toolbar sx={{ pr: '24px', minHeight: { xs: 64 } }}>
                     <IconButton
                         edge="start"
                         onClick={toggleDrawer}
                         sx={{
                             mr: 3,
-                            color: '#2563eb',
+                            color: '#4f46e5',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                transform: 'scale(1.05)',
+                            },
                             ...(open && { display: 'none' }),
                         }}
                     >
                         <MenuIcon />
                     </IconButton>
 
-                    <Typography
-                        component="h1"
-                        variant="h6"
-                        noWrap
-                        sx={{
-                            flexGrow: 1,
-                            fontWeight: 700,
-                            color: '#0f172a',
-                        }}
-                    >
-                        AXIORA Admin Portal
-                    </Typography>
+                    <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#64748b',
+                            }}
+                        >
+                            Admin Portal
+                        </Typography>
+                        <Typography sx={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 500 }}>/</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                color: '#0f172a',
+                            }}
+                        >
+                            {getBreadcrumbs()}
+                        </Typography>
+                    </Box>
 
                     <AccountMenu />
                 </Toolbar>
@@ -110,14 +143,21 @@ const AdminDashboard = () => {
                 sx={open ? styles.drawerStyled : styles.hideDrawer}
             >
                 <Toolbar sx={styles.toolBarStyled}>
-                    <IconButton onClick={toggleDrawer}>
+                    <IconButton
+                        onClick={toggleDrawer}
+                        sx={{
+                            color: 'rgba(255,255,255,0.7)',
+                            '&:hover': {
+                                color: '#ffffff',
+                                background: 'rgba(255,255,255,0.1)',
+                            },
+                        }}
+                    >
                         <ChevronLeftIcon />
                     </IconButton>
                 </Toolbar>
 
-                <Divider />
-
-                <List component="nav">
+                <List component="nav" sx={{ px: 0.5 }}>
                     <SideBar />
                 </List>
             </Drawer>
@@ -306,12 +346,12 @@ export default AdminDashboard;
 
 const styles = {
     boxStyled: {
-        background:
-            'linear-gradient(135deg,#f8fafc,#eef2ff,#f5f3ff)',
+        background: '#f8fafc',
         flexGrow: 1,
         height: '100vh',
         overflow: 'auto',
-        padding: '20px',
+        padding: '24px',
+        transition: 'all 0.3s ease',
     },
 
     toolBarStyled: {
@@ -319,7 +359,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'flex-end',
         px: 1,
-        background: '#ffffff',
+        background: 'transparent',
     },
 
     drawerStyled: {

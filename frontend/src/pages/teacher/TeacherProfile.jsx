@@ -48,7 +48,7 @@ const TeacherProfile = () => {
                                     width: 140,
                                     height: 140,
                                     fontSize: "3rem",
-                                    bgcolor: "#2563eb",
+                                    background: "linear-gradient(135deg, #10b981, #06b6d4)",
                                 }}
                             >
                                 {currentUser?.name

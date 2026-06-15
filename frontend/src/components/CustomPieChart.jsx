@@ -8,7 +8,7 @@ import {
     Legend,
 } from "recharts";
 
-const COLORS = ["#10b981", "#ef4444"];
+const COLORS = ["#4f46e5", "#f87171"];
 
 const RADIAN = Math.PI / 180;
 
@@ -29,14 +29,105 @@ const renderCustomizedLabel = ({
         <text
             x={x}
             y={y}
-            fill="#fff"
+            fill="#ffffff"
             textAnchor={x > cx ? "start" : "end"}
             dominantBaseline="central"
-            fontSize={14}
-            fontWeight="bold"
+            fontSize={13}
+            fontWeight="700"
+            fontFamily="Inter, sans-serif"
         >
             {`${(percent * 100).toFixed(0)}%`}
         </text>
+    );
+};
+
+const CustomTooltipContent = ({ active, payload }) => {
+    if (!active || !payload || !payload.length) return null;
+
+    return (
+        <div
+            style={{
+                background: "#ffffff",
+                padding: "10px 16px",
+                borderRadius: 10,
+                border: "1px solid rgba(148, 163, 184, 0.15)",
+                boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
+                fontFamily: "Inter, sans-serif",
+            }}
+        >
+            <p
+                style={{
+                    margin: 0,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                }}
+            >
+                {payload[0].name}
+            </p>
+            <p
+                style={{
+                    margin: "4px 0 0",
+                    fontSize: 13,
+                    color: "#64748b",
+                }}
+            >
+                Count:{" "}
+                <span
+                    style={{
+                        fontWeight: 700,
+                        color: payload[0].payload.fill || "#4f46e5",
+                    }}
+                >
+                    {payload[0].value}
+                </span>
+            </p>
+        </div>
+    );
+};
+
+const renderLegend = (props) => {
+    const { payload } = props;
+
+    return (
+        <div
+            style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 24,
+                paddingTop: 8,
+            }}
+        >
+            {payload.map((entry, index) => (
+                <div
+                    key={`legend-${index}`}
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: entry.color,
+                        }}
+                    />
+                    <span
+                        style={{
+                            fontSize: 13,
+                            fontWeight: 500,
+                            color: "#475569",
+                            fontFamily: "Inter, sans-serif",
+                        }}
+                    >
+                        {entry.value}
+                    </span>
+                </div>
+            ))}
+        </div>
     );
 };
 
@@ -49,8 +140,10 @@ const CustomPieChart = ({ data = [] }) => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#64748b",
+                    color: "#94a3b8",
                     fontWeight: 600,
+                    fontSize: "0.9375rem",
+                    fontFamily: "Inter, sans-serif",
                 }}
             >
                 No Data Available
@@ -61,18 +154,24 @@ const CustomPieChart = ({ data = [] }) => {
     return (
         <ResponsiveContainer width="100%" height={350}>
             <PieChart>
-                <Tooltip />
+                <Tooltip content={<CustomTooltipContent />} />
 
-                <Legend />
+                <Legend content={renderLegend} />
 
                 <Pie
                     data={data}
                     cx="50%"
                     cy="50%"
-                    outerRadius={110}
+                    outerRadius={115}
+                    innerRadius={0}
                     dataKey="value"
                     label={renderCustomizedLabel}
                     labelLine={false}
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                    strokeWidth={2}
+                    stroke="#ffffff"
                 >
                     {data.map((entry, index) => (
                         <Cell

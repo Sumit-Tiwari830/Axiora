@@ -47,18 +47,33 @@ const AccountMenu = () => {
                     textAlign: "center",
                 }}
             >
-                <Tooltip title="Account">
+                <Tooltip title="Account" arrow>
                     <IconButton
                         onClick={handleClick}
                         size="small"
-                        sx={{ ml: 2 }}
+                        sx={{
+                            ml: 2,
+                            p: 0.5,
+                            borderRadius: "50%",
+                            border: "2px solid transparent",
+                            transition: "all 0.25s ease",
+                            "&:hover": {
+                                border: "2px solid rgba(79, 70, 229, 0.3)",
+                                background: "rgba(79, 70, 229, 0.06)",
+                            },
+                        }}
                     >
                         <Avatar
                             sx={{
-                                width: 40,
-                                height: 40,
-                                bgcolor: "#6366f1",
+                                width: 38,
+                                height: 38,
+                                background:
+                                    "linear-gradient(135deg, #4f46e5, #7c3aed)",
                                 fontWeight: 700,
+                                fontSize: "1rem",
+                                letterSpacing: "0.02em",
+                                boxShadow:
+                                    "0 2px 8px rgba(79, 70, 229, 0.3)",
                             }}
                         >
                             {firstLetter}
@@ -73,18 +88,46 @@ const AccountMenu = () => {
                 open={open}
                 onClose={handleClose}
                 PaperProps={{
-                    elevation: 8,
+                    elevation: 0,
                     sx: {
                         overflow: "visible",
                         mt: 1.5,
-                        minWidth: 220,
-                        borderRadius: 3,
+                        minWidth: 240,
+                        borderRadius: "12px",
+                        border: "1px solid rgba(148, 163, 184, 0.15)",
+                        boxShadow:
+                            "0 10px 40px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06)",
 
                         "& .MuiAvatar-root": {
                             width: 32,
                             height: 32,
                             ml: -0.5,
                             mr: 1,
+                        },
+
+                        "& .MuiMenuItem-root": {
+                            borderRadius: "8px",
+                            mx: 1,
+                            px: 1.5,
+                            py: 1,
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            color: "#334155",
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                                background:
+                                    "rgba(79, 70, 229, 0.06)",
+                                color: "#4f46e5",
+                                "& .MuiListItemIcon-root": {
+                                    color: "#4f46e5",
+                                },
+                            },
+                        },
+
+                        "& .MuiListItemIcon-root": {
+                            color: "#64748b",
+                            minWidth: 36,
+                            transition: "color 0.2s ease",
                         },
 
                         "&:before": {
@@ -99,6 +142,10 @@ const AccountMenu = () => {
                             transform:
                                 "translateY(-50%) rotate(45deg)",
                             zIndex: 0,
+                            borderLeft:
+                                "1px solid rgba(148, 163, 184, 0.15)",
+                            borderTop:
+                                "1px solid rgba(148, 163, 184, 0.15)",
                         },
                     },
                 }}
@@ -111,51 +158,86 @@ const AccountMenu = () => {
                     vertical: "bottom",
                 }}
             >
-                <Box sx={{ px: 2, py: 1 }}>
-                    <Typography fontWeight={600}>
+                <Box sx={{ px: 2.5, py: 1.5 }}>
+                    <Typography
+                        sx={{
+                            fontWeight: 700,
+                            fontSize: "0.9375rem",
+                            color: "#0f172a",
+                        }}
+                    >
                         {currentUser?.name}
                     </Typography>
 
                     <Typography
                         variant="body2"
-                        color="text.secondary"
+                        sx={{
+                            color: "#94a3b8",
+                            fontSize: "0.8125rem",
+                            textTransform: "capitalize",
+                            mt: 0.25,
+                        }}
                     >
                         {currentRole}
                     </Typography>
                 </Box>
 
-                <Divider />
+                <Divider
+                    sx={{
+                        mx: 1.5,
+                        borderColor: "rgba(148, 163, 184, 0.12)",
+                    }}
+                />
 
-                <MenuItem
-                    component={Link}
-                    to={`/${currentRole}/profile`}
-                    onClick={handleClose}
-                >
-                    <ListItemIcon>
-                        <AccountCircle fontSize="small" />
-                    </ListItemIcon>
-                    Profile
-                </MenuItem>
+                <Box sx={{ py: 0.5 }}>
+                    <MenuItem
+                        component={Link}
+                        to={`/${currentRole}/profile`}
+                        onClick={handleClose}
+                    >
+                        <ListItemIcon>
+                            <AccountCircle fontSize="small" />
+                        </ListItemIcon>
+                        Profile
+                    </MenuItem>
 
-                <MenuItem onClick={handleClose}>
-                    <ListItemIcon>
-                        <Settings fontSize="small" />
-                    </ListItemIcon>
-                    Settings
-                </MenuItem>
+                    <MenuItem onClick={handleClose}>
+                        <ListItemIcon>
+                            <Settings fontSize="small" />
+                        </ListItemIcon>
+                        Settings
+                    </MenuItem>
+                </Box>
 
-                <Divider />
+                <Divider
+                    sx={{
+                        mx: 1.5,
+                        borderColor: "rgba(148, 163, 184, 0.12)",
+                    }}
+                />
 
-                <MenuItem
-                    component={Link}
-                    to="/logout"
-                    onClick={handleClose}
-                >
-                    <ListItemIcon>
-                        <Logout fontSize="small" />
-                    </ListItemIcon>
-                    Logout
-                </MenuItem>
+                <Box sx={{ py: 0.5 }}>
+                    <MenuItem
+                        component={Link}
+                        to="/logout"
+                        onClick={handleClose}
+                        sx={{
+                            "&:hover": {
+                                background:
+                                    "rgba(239, 68, 68, 0.06) !important",
+                                color: "#ef4444 !important",
+                                "& .MuiListItemIcon-root": {
+                                    color: "#ef4444 !important",
+                                },
+                            },
+                        }}
+                    >
+                        <ListItemIcon>
+                            <Logout fontSize="small" />
+                        </ListItemIcon>
+                        Logout
+                    </MenuItem>
+                </Box>
             </Menu>
         </>
     );

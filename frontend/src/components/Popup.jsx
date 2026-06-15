@@ -1,9 +1,13 @@
 import React from "react";
 import { useDispatch } from "react-redux";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, Slide } from "@mui/material";
 
 import { underControl } from "../redux/userRelated/userSlice";
 import { underStudentControl } from "../redux/studentRelated/studentSlice";
+
+function SlideTransition(props) {
+    return <Slide {...props} direction="left" />;
+}
 
 const Popup = ({
     message,
@@ -28,8 +32,9 @@ const Popup = ({
     return (
         <Snackbar
             open={showPopup}
-            autoHideDuration={3000}
+            autoHideDuration={3500}
             onClose={handleClose}
+            TransitionComponent={SlideTransition}
             anchorOrigin={{
                 vertical: "top",
                 horizontal: "right",
@@ -41,10 +46,25 @@ const Popup = ({
                 variant="filled"
                 sx={{
                     width: "100%",
-                    minWidth: 300,
-                    borderRadius: 2,
+                    minWidth: 320,
+                    borderRadius: "12px",
                     fontWeight: 600,
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                    fontSize: "0.875rem",
+                    letterSpacing: "0.01em",
+                    boxShadow:
+                        "0 12px 32px rgba(15, 23, 42, 0.15), 0 2px 6px rgba(15, 23, 42, 0.08)",
+                    backdropFilter: "blur(8px)",
+                    "& .MuiAlert-icon": {
+                        fontSize: "1.35rem",
+                        opacity: 1,
+                    },
+                    "& .MuiAlert-action": {
+                        opacity: 0.8,
+                        transition: "opacity 0.2s ease",
+                        "&:hover": {
+                            opacity: 1,
+                        },
+                    },
                 }}
             >
                 {message}

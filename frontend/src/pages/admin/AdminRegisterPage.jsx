@@ -134,7 +134,7 @@ const AdminRegisterPage = () => {
                                 textAlign="center"
                                 sx={{
                                     background:
-                                        "linear-gradient(135deg,#2563eb,#7c3aed)",
+                                        "linear-gradient(135deg,#4f46e5,#7c3aed)",
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                     mb: 1,

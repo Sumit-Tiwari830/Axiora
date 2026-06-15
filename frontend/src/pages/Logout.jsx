@@ -1,8 +1,20 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import styled from "styled-components";
 import { authLogout } from "../redux/userRelated/userSlice";
+import {
+    Box,
+    Paper,
+    Typography,
+    Button,
+    Avatar,
+    Zoom,
+    Fade
+} from "@mui/material";
+import {
+    LogoutOutlined as LogoutIcon,
+    CancelOutlined as CancelIcon
+} from "@mui/icons-material";
 
 const Logout = () => {
     const navigate = useNavigate();
@@ -21,148 +33,132 @@ const Logout = () => {
         navigate(-1);
     };
 
+    const userName = currentUser?.name || "User";
+
     return (
-        <PageWrapper>
-            <LogoutCard>
-                <Logo>AXIORA</Logo>
+        <Box
+            sx={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                background: "rgba(15, 23, 42, 0.55)", // Soft dark overlay
+                backdropFilter: "blur(12px)", // Blurs the dashboard behind
+                WebkitBackdropFilter: "blur(12px)",
+                zIndex: 3000, // Sits above sidebar and appbar
+                px: 2
+            }}
+        >
+            <Zoom in={true} style={{ transitionDelay: "50ms" }}>
+                <Paper
+                    elevation={0}
+                    sx={{
+                        width: "100%",
+                        maxWidth: 400,
+                        p: 4,
+                        borderRadius: "24px",
+                        textAlign: "center",
+                        background: "#ffffff",
+                        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                        border: "1px solid rgba(226, 232, 240, 0.8)",
+                        color: "#0f172a"
+                    }}
+                >
+                    <Fade in={true} timeout={600}>
+                        <Box>
+                            {/* Glowing Exit Icon */}
+                            <Avatar
+                                sx={{
+                                    width: 64,
+                                    height: 64,
+                                    background: "rgba(239, 68, 68, 0.09)",
+                                    color: "#ef4444",
+                                    border: "1px solid rgba(239, 68, 68, 0.15)",
+                                    mx: "auto",
+                                    mb: 3
+                                }}
+                            >
+                                <LogoutIcon sx={{ fontSize: 30 }} />
+                            </Avatar>
 
-                <Avatar>
-                    {currentUser?.name?.charAt(0)?.toUpperCase() || "A"}
-                </Avatar>
+                            <Typography
+                                variant="h5"
+                                fontWeight={800}
+                                sx={{
+                                    mb: 1,
+                                    letterSpacing: "-0.02em",
+                                    color: "#0f172a"
+                                }}
+                            >
+                                Log out of Axiora
+                            </Typography>
 
-                <UserName>
-                    {currentUser?.name || "User"}
-                </UserName>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    color: "#64748b", 
+                                    mb: 4, 
+                                    px: 1, 
+                                    lineHeight: 1.6 
+                                }}
+                            >
+                                Are you sure you want to log out, <strong>{userName}</strong>? You will need to re-authenticate to access your portals.
+                            </Typography>
 
-                <Title>Logout Confirmation</Title>
+                            {/* Side-by-side Button Layout */}
+                            <Box sx={{ display: "flex", gap: 2 }}>
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    onClick={handleCancel}
+                                    sx={{
+                                        py: 1.5,
+                                        borderRadius: "12px",
+                                        fontWeight: 600,
+                                        textTransform: "none",
+                                        color: "#475569",
+                                        borderColor: "#cbd5e1",
+                                        "&:hover": {
+                                            borderColor: "#94a3b8",
+                                            background: "#f8fafc"
+                                        },
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
 
-                <Message>
-                    Are you sure you want to logout from your
-                    Axiora account?
-                </Message>
-
-                <ButtonGroup>
-                    <LogoutButton onClick={handleLogout}>
-                        Logout
-                    </LogoutButton>
-
-                    <CancelButton onClick={handleCancel}>
-                        Cancel
-                    </CancelButton>
-                </ButtonGroup>
-            </LogoutCard>
-        </PageWrapper>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    onClick={handleLogout}
+                                    sx={{
+                                        py: 1.5,
+                                        borderRadius: "12px",
+                                        fontWeight: 700,
+                                        textTransform: "none",
+                                        background: "#ef4444",
+                                        boxShadow: "0 2px 4px rgba(239, 68, 68, 0.15)",
+                                        "&:hover": {
+                                            background: "#dc2626",
+                                            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)"
+                                        },
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    Log Out
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Fade>
+                </Paper>
+            </Zoom>
+        </Box>
     );
 };
 
 export default Logout;
-
-const PageWrapper = styled.div`
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(
-    135deg,
-    #f8fafc,
-    #eef2ff,
-    #f5f3ff
-  );
-`;
-
-const LogoutCard = styled.div`
-  width: 420px;
-  background: white;
-  border-radius: 24px;
-  padding: 40px;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
-`;
-
-const Logo = styled.h1`
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 25px;
-  background: linear-gradient(
-    90deg,
-    #2563eb,
-    #7c3aed
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
-const Avatar = styled.div`
-  width: 90px;
-  height: 90px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #7c3aed
-  );
-  color: white;
-  font-size: 2rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const UserName = styled.h2`
-  color: #0f172a;
-  margin-bottom: 10px;
-`;
-
-const Title = styled.h3`
-  color: #1e293b;
-  margin-bottom: 15px;
-`;
-
-const Message = styled.p`
-  color: #64748b;
-  line-height: 1.7;
-  margin-bottom: 30px;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 15px;
-`;
-
-const LogoutButton = styled.button`
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-  background: #ef4444;
-  transition: 0.3s;
-
-  &:hover {
-    background: #dc2626;
-    transform: translateY(-2px);
-  }
-`;
-
-const CancelButton = styled.button`
-  flex: 1;
-  padding: 14px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  border: 2px solid #7c3aed;
-  background: white;
-  color: #7c3aed;
-  transition: 0.3s;
-
-  &:hover {
-    background: #f5f3ff;
-    transform: translateY(-2px);
-  }
-`;

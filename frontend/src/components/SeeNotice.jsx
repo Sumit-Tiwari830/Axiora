@@ -138,28 +138,10 @@ const SeeNotice = () => {
     }
 
     return (
-        <Box sx={{ mt: 2 }}>
-            <Typography
-                variant="h5"
-                fontWeight={700}
-                mb={3}
-            >
-                Latest Notices
-            </Typography>
-
-            <Paper
-                elevation={3}
-                sx={{
-                    borderRadius: 3,
-                    overflow: "hidden",
-                }}
-            >
-                <TableViewTemplate
-                    columns={noticeColumns}
-                    rows={noticeRows}
-                />
-            </Paper>
-        </Box>
+        <TableViewTemplate
+            columns={noticeColumns}
+            rows={noticeRows}
+        />
     );
 };
 

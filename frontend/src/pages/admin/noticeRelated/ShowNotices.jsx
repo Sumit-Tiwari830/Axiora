@@ -196,32 +196,106 @@ const ShowNotices = () => {
     }
 
     return (
-        <Paper
-            sx={{
-                width: "100%",
-                overflow: "hidden",
-                borderRadius: 3,
-                p: 2,
-            }}
-        >
-            <Typography
-                variant="h5"
-                fontWeight="bold"
-                sx={{ mb: 2 }}
-            >
-                Notices
-            </Typography>
+        <Box sx={{ p: { xs: 2, md: 3 } }} className="animate-fadeInUp">
+            {/* Page Header */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Box
+                        sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: "14px",
+                            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
+                        }}
+                    >
+                        <NoteAddIcon sx={{ color: "#fff", fontSize: 24 }} />
+                    </Box>
+                    <Box>
+                        <Typography variant="h4" fontWeight={800} color="#0f172a">
+                            Notice Board
+                        </Typography>
+                        <Typography color="#64748b" fontSize="0.88rem">
+                            {noticeRows.length} notice{noticeRows.length !== 1 ? "s" : ""} published
+                        </Typography>
+                    </Box>
+                </Box>
+                <Button
+                    variant="contained"
+                    startIcon={<NoteAddIcon />}
+                    onClick={() => navigate("/Admin/addnotice")}
+                    sx={{
+                        borderRadius: "12px",
+                        px: 3,
+                        py: 1.2,
+                        background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                        fontWeight: 700,
+                        textTransform: "none",
+                        boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
+                        "&:hover": { background: "linear-gradient(135deg, #3730a3, #5b21b6)" },
+                    }}
+                >
+                    Add Notice
+                </Button>
+            </Box>
 
-            {noticeRows.length > 0 && (
-                <TableTemplate
-                    buttonHaver={NoticeButtonHaver}
-                    columns={noticeColumns}
-                    rows={noticeRows}
-                />
+            {/* Table or Empty */}
+            {noticeRows.length > 0 ? (
+                <Paper
+                    sx={{
+                        width: "100%",
+                        overflow: "hidden",
+                        borderRadius: "20px",
+                        boxShadow: "0 4px 24px rgba(79,70,229,0.08)",
+                    }}
+                >
+                    <TableTemplate
+                        buttonHaver={NoticeButtonHaver}
+                        columns={noticeColumns}
+                        rows={noticeRows}
+                    />
+                </Paper>
+            ) : (
+                <Paper
+                    sx={{
+                        p: 8,
+                        textAlign: "center",
+                        borderRadius: "20px",
+                        background: "rgba(79,70,229,0.02)",
+                        border: "1px dashed rgba(79,70,229,0.2)",
+                    }}
+                >
+                    <Box sx={{ width: 64, height: 64, borderRadius: "18px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 2 }}>
+                        <NoteAddIcon sx={{ color: "#fff", fontSize: 32 }} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={700} color="#0f172a" mb={1}>
+                        No Notices Yet
+                    </Typography>
+                    <Typography color="#64748b" mb={3}>
+                        Create your first notice to communicate with students and staff.
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        startIcon={<NoteAddIcon />}
+                        onClick={() => navigate("/Admin/addnotice")}
+                        sx={{
+                            borderRadius: "12px",
+                            px: 4,
+                            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                            fontWeight: 700,
+                            textTransform: "none",
+                        }}
+                    >
+                        Add First Notice
+                    </Button>
+                </Paper>
             )}
 
             <SpeedDialTemplate actions={actions} />
-        </Paper>
+        </Box>
     );
 };
 

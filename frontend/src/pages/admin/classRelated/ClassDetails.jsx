@@ -258,7 +258,7 @@ const ClassDetails = () => {
                             p: 3,
                             borderRadius: "18px",
                             background:
-                                "linear-gradient(135deg,#2563eb,#3b82f6)",
+                                "linear-gradient(135deg,#4f46e5,#7c3aed)",
                             color: "#fff",
                         }}
                     >

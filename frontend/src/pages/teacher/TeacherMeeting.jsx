@@ -7,21 +7,24 @@ import {
     Typography,
     TextField,
     Button,
-    FormControl,
-    FormLabel,
-    RadioGroup,
-    FormControlLabel,
-    Radio,
-    Checkbox,
-    FormGroup,
+    Grid,
     CircularProgress,
     Divider,
     IconButton,
     Tooltip,
     Snackbar,
     Alert,
-    Chip,
-    Switch
+    Switch,
+    Avatar,
+    Card,
+    CardContent,
+    InputAdornment,
+    Checkbox,
+    FormControlLabel,
+    List,
+    ListItem,
+    ListItemAvatar,
+    ListItemText
 } from "@mui/material";
 import { 
     VideoCall as VideoCallIcon, 
@@ -32,7 +35,13 @@ import {
     Mic as MicIcon,
     MicOff as MicOffIcon,
     Videocam as VideocamIcon,
-    VideocamOff as VideocamOffIcon
+    VideocamOff as VideocamOffIcon,
+    InfoOutlined as InfoIcon,
+    Search as SearchIcon,
+    CheckCircle as CheckCircleIcon,
+    RadioButtonUnchecked as UncheckedIcon,
+    School as SchoolIcon,
+    CastForEducation as ClassIcon
 } from "@mui/icons-material";
 import { io } from "socket.io-client";
 
@@ -55,6 +64,7 @@ const TeacherMeeting = () => {
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [allowVoice, setAllowVoice] = useState(true);
     const [allowVideo, setAllowVideo] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const [loader, setLoader] = useState(false);
     const [showPopup, setShowPopup] = useState(false);
@@ -65,7 +75,6 @@ const TeacherMeeting = () => {
     const className = currentUser?.teachSclass?.sclassName || "Class";
     const subjectName = currentUser?.teachSubject?.subName || "Live Class";
 
-    // Generate random meeting code (e.g. abc-defg-hij)
     const generateMeetingCode = () => {
         const p1 = Math.random().toString(36).substring(2, 5);
         const p2 = Math.random().toString(36).substring(2, 6);
@@ -73,7 +82,6 @@ const TeacherMeeting = () => {
         return `${p1}-${p2}-${p3}`;
     };
 
-    // Generate random password
     const generatePassword = () => {
         return Math.floor(100000 + Math.random() * 900000).toString();
     };
@@ -116,7 +124,7 @@ const TeacherMeeting = () => {
 
         const meetingUrl = `/meeting/${meetingCode}`;
 
-        // 1. Create a database Notice for persistence
+        // Create Notice
         const noticeDetails = `Live Class Meeting: ${subjectName} is live. Join Link: ${window.location.origin}${meetingUrl} | Meeting Code: ${meetingCode} | Password: ${password}`;
         const fields = {
             title: `🔴 Live Class: ${subjectName}`,
@@ -129,7 +137,7 @@ const TeacherMeeting = () => {
 
         dispatch(addStuff(fields, "Notice"));
 
-        // 2. Emit Real-time Socket Notification
+        // Socket Notification
         try {
             const baseUrl = import.meta.env.VITE_REACT_APP_BASE_URL || "http://localhost:5000/api";
             const socketUrl = baseUrl.replace("/api", "").replace(/\/$/, "");
@@ -151,7 +159,6 @@ const TeacherMeeting = () => {
             console.error("Socket emit error:", err);
         }
 
-        // Redirect teacher directly to the meeting room (pass moderation settings)
         navigate(`${meetingUrl}?pass=${password}&allowVoice=${allowVoice}&allowVideo=${allowVideo}`);
     };
 
@@ -159,206 +166,530 @@ const TeacherMeeting = () => {
         navigator.clipboard.writeText(text).then(() => setCopied(true));
     };
 
+    // Filter students based on search term
+    const filteredStudents = sclassStudents ? sclassStudents.filter(student =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (student.rollNum && student.rollNum.toString().includes(searchTerm))
+    ) : [];
+
     return (
-        <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
+        <Box sx={{ p: { xs: 2, md: 4 } }}>
+            {/* Header Banner */}
             <Paper
-                elevation={3}
+                elevation={0}
                 sx={{
-                    width: "100%",
-                    maxWidth: 720,
                     p: 4,
+                    mb: 4,
                     borderRadius: "24px",
-                    boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
-                    background: "linear-gradient(145deg, #ffffff, #f8f7ff)"
+                    background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                    color: "#fff",
+                    boxShadow: "0 10px 30px rgba(124, 58, 237, 0.2)"
                 }}
             >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-                    <Box sx={{ p: 1.5, borderRadius: "16px", background: "linear-gradient(135deg, #2563eb, #7c3aed)", display: "flex" }}>
-                        <VideoCallIcon sx={{ fontSize: 32, color: "#fff" }} />
-                    </Box>
-                    <Box>
-                        <Typography variant="h4" fontWeight={800} sx={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                            Launch Live Class
-                        </Typography>
-                        <Typography color="text.secondary" variant="body2">
-                            Start a video conference for <strong>{className}</strong> · {subjectName}
-                        </Typography>
-                    </Box>
-                </Box>
-
-                <Divider sx={{ mb: 4 }} />
-
-                <form onSubmit={submitHandler}>
-                    {/* Meeting Code */}
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                            <GroupsIcon fontSize="small" sx={{ color: "#7c3aed" }} /> Meeting Code
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                            <TextField
-                                fullWidth
-                                value={meetingCode}
-                                InputProps={{
-                                    readOnly: true,
-                                    sx: { fontFamily: "monospace", fontWeight: 700, letterSpacing: 2, fontSize: 18, borderRadius: "12px" }
+                <Grid container spacing={3} alignItems="center">
+                    <Grid item xs={12} sm={8}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+                            <Avatar
+                                sx={{
+                                    width: 64,
+                                    height: 64,
+                                    background: "rgba(255, 255, 255, 0.2)",
+                                    backdropFilter: "blur(10px)",
+                                    border: "2px solid rgba(255, 255, 255, 0.4)"
                                 }}
-                            />
-                            <Tooltip title="Copy code">
-                                <IconButton onClick={() => copyToClipboard(meetingCode)} sx={{ color: "#7c3aed" }}>
-                                    <ContentCopyIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Generate new code">
-                                <IconButton onClick={() => setMeetingCode(generateMeetingCode())} sx={{ color: "#7c3aed" }}>
-                                    <AutorenewIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-                    </Box>
-
-                    {/* Password */}
-                    <Box sx={{ mb: 4 }}>
-                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                            <LockIcon fontSize="small" sx={{ color: "#7c3aed" }} /> Room Password / PIN
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                            <TextField
-                                fullWidth
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                InputProps={{ sx: { fontFamily: "monospace", fontWeight: 700, fontSize: 20, borderRadius: "12px", letterSpacing: 4 } }}
-                            />
-                            <Tooltip title="Copy password">
-                                <IconButton onClick={() => copyToClipboard(password)} sx={{ color: "#7c3aed" }}>
-                                    <ContentCopyIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Generate new password">
-                                <IconButton onClick={() => setPassword(generatePassword())} sx={{ color: "#7c3aed" }}>
-                                    <AutorenewIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-                    </Box>
-
-                    {/* Moderation Settings */}
-                    <Box sx={{ mb: 4, p: 2.5, borderRadius: "16px", background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.15)" }}>
-                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-                            🛡️ Student Permissions (Set at launch)
-                        </Typography>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    {allowVoice ? <MicIcon fontSize="small" sx={{ color: "#22c55e" }} /> : <MicOffIcon fontSize="small" sx={{ color: "#ef4444" }} />}
-                                    <Box>
-                                        <Typography variant="body2" fontWeight={600}>Student Microphones</Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {allowVoice ? "Students can unmute themselves" : "All students muted until you allow"}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                                <Switch checked={allowVoice} onChange={(e) => setAllowVoice(e.target.checked)} color="success" />
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    {allowVideo ? <VideocamIcon fontSize="small" sx={{ color: "#22c55e" }} /> : <VideocamOffIcon fontSize="small" sx={{ color: "#ef4444" }} />}
-                                    <Box>
-                                        <Typography variant="body2" fontWeight={600}>Student Cameras</Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {allowVideo ? "Students can enable their camera" : "All cameras off until you allow"}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                                <Switch checked={allowVideo} onChange={(e) => setAllowVideo(e.target.checked)} color="success" />
+                            >
+                                <VideoCallIcon sx={{ fontSize: 36, color: "#fff" }} />
+                            </Avatar>
+                            <Box>
+                                <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: "-0.02em" }}>
+                                    Live Class Command Center
+                                </Typography>
+                                <Typography sx={{ color: "rgba(255,255,255,0.8)", mt: 0.5, fontSize: "0.95rem" }}>
+                                    Host interactive video classes, set student permissions, and invite attendees in real-time.
+                                </Typography>
                             </Box>
                         </Box>
-                    </Box>
-
-                    <FormControl component="fieldset" sx={{ mb: 4, width: "100%" }}>
-                        <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}>
-                            Who to Invite?
-                        </FormLabel>
-                        <RadioGroup
-                            row
-                            value={inviteType}
-                            onChange={(e) => setInviteType(e.target.value)}
+                    </Grid>
+                    <Grid item xs={12} sm={4} sx={{ textAlign: { sm: "right" } }}>
+                        <Box
+                            sx={{
+                                display: "inline-flex",
+                                px: 2,
+                                py: 1,
+                                borderRadius: "100px",
+                                background: "rgba(255,255,255,0.15)",
+                                border: "1px solid rgba(255,255,255,0.25)"
+                            }}
                         >
-                            <FormControlLabel value="all" control={<Radio color="secondary" />} label="Entire Class" />
-                            <FormControlLabel value="manual" control={<Radio color="secondary" />} label="Select Students Manually" />
-                        </RadioGroup>
-                    </FormControl>
-
-                    {inviteType === "manual" && (
-                        <Box sx={{ mb: 4 }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Student List ({selectedStudents.length} selected)
+                            <Box sx={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", mr: 1, alignSelf: "center", animation: "pulse 2s infinite" }} />
+                            <Typography variant="caption" fontWeight={600}>
+                                System Ready
                             </Typography>
-                            {loading ? (
-                                <CircularProgress size={24} />
-                            ) : (
-                                <Paper variant="outlined" sx={{ p: 2, maxHeight: 250, overflow: "auto", borderRadius: "12px" }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={selectedStudents.length === sclassStudents.length}
-                                                indeterminate={selectedStudents.length > 0 && selectedStudents.length < sclassStudents.length}
-                                                onChange={handleSelectAll}
-                                                color="secondary"
-                                            />
-                                        }
-                                        label="Select All Students"
-                                        sx={{ width: "100%", mb: 1 }}
-                                    />
-                                    <Divider sx={{ mb: 1 }} />
-                                    <FormGroup>
-                                        {sclassStudents && sclassStudents.map((student) => (
-                                            <FormControlLabel
-                                                key={student._id}
-                                                control={
-                                                    <Checkbox
-                                                        checked={selectedStudents.includes(student._id)}
-                                                        onChange={() => handleSelectStudent(student._id)}
-                                                        color="secondary"
-                                                    />
-                                                }
-                                                label={`${student.name} (Roll: ${student.rollNum})`}
-                                            />
-                                        ))}
-                                    </FormGroup>
-                                </Paper>
-                            )}
                         </Box>
-                    )}
+                    </Grid>
+                </Grid>
+            </Paper>
 
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        size="large"
-                        disabled={loader}
+            <Grid container spacing={4}>
+                {/* Launcher Form */}
+                <Grid item xs={12} lg={8}>
+                    <Paper
+                        elevation={0}
                         sx={{
-                            py: 1.8,
-                            borderRadius: "14px",
-                            fontWeight: 700,
-                            fontSize: 16,
-                            background: "linear-gradient(135deg, #2563eb, #7c3aed)",
-                            boxShadow: "0 6px 20px rgba(124, 58, 237, 0.4)",
-                            "&:hover": {
-                                background: "linear-gradient(135deg, #1d4ed8, #6d28d9)",
-                                boxShadow: "0 8px 25px rgba(124, 58, 237, 0.5)"
-                            }
+                            p: 4,
+                            borderRadius: "24px",
+                            boxShadow: "0 10px 40px rgba(0,0,0,0.03)",
+                            border: "1px solid rgba(226, 232, 240, 0.8)",
+                            background: "#fff"
                         }}
                     >
-                        {loader ? <CircularProgress size={24} color="inherit" /> : "🚀 Start Live Meeting"}
-                    </Button>
-                </form>
-            </Paper>
+                        <form onSubmit={submitHandler}>
+                            <Typography variant="h5" fontWeight={700} sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1 }}>
+                                ⚙️ Class Configuration
+                            </Typography>
+
+                            <Grid container spacing={3} sx={{ mb: 4 }}>
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: "#475569" }}>
+                                        Meeting Code
+                                    </Typography>
+                                    <TextField
+                                        fullWidth
+                                        value={meetingCode}
+                                        InputProps={{
+                                            readOnly: true,
+                                            endAdornment: (
+                                                <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                                                    <Tooltip title="Copy code">
+                                                        <IconButton 
+                                                            onClick={() => copyToClipboard(meetingCode)}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <ContentCopyIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Generate new code">
+                                                        <IconButton 
+                                                            onClick={() => setMeetingCode(generateMeetingCode())}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <AutorenewIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            ),
+                                            sx: { 
+                                                fontFamily: "monospace", 
+                                                fontWeight: 700, 
+                                                letterSpacing: 1, 
+                                                fontSize: 16, 
+                                                borderRadius: "14px",
+                                                backgroundColor: "#fafbfc"
+                                            }
+                                        }}
+                                        sx={{
+                                            "& .MuiOutlinedInput-root": {
+                                                "& fieldset": { borderColor: "rgba(226, 232, 240, 0.8)" },
+                                                "&:hover fieldset": { borderColor: "rgba(124, 58, 237, 0.3)" },
+                                                "&.Mui-focused fieldset": { borderColor: "#7c3aed" }
+                                            }
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: "#475569" }}>
+                                        Room Password / PIN
+                                    </Typography>
+                                    <TextField
+                                        fullWidth
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                                                    <Tooltip title="Copy password">
+                                                        <IconButton 
+                                                            onClick={() => copyToClipboard(password)}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <ContentCopyIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Generate new password">
+                                                        <IconButton 
+                                                            onClick={() => setPassword(generatePassword())}
+                                                            sx={{ 
+                                                                color: "#7c3aed",
+                                                                background: "rgba(124, 58, 237, 0.05)",
+                                                                "&:hover": { background: "rgba(124, 58, 237, 0.1)" },
+                                                                width: 34, height: 34
+                                                            }}
+                                                        >
+                                                            <AutorenewIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            ),
+                                            sx: { 
+                                                fontFamily: "monospace", 
+                                                fontWeight: 700, 
+                                                letterSpacing: 2, 
+                                                fontSize: 16, 
+                                                borderRadius: "14px",
+                                                backgroundColor: "#fafbfc"
+                                            }
+                                        }}
+                                        sx={{
+                                            "& .MuiOutlinedInput-root": {
+                                                "& fieldset": { borderColor: "rgba(226, 232, 240, 0.8)" },
+                                                "&:hover fieldset": { borderColor: "rgba(124, 58, 237, 0.3)" },
+                                                "&.Mui-focused fieldset": { borderColor: "#7c3aed" }
+                                            }
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            {/* Permissions Cards */}
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, color: "#475569" }}>
+                                Default Student Permissions
+                            </Typography>
+                            <Grid container spacing={3} sx={{ mb: 4 }}>
+                                <Grid item xs={12} sm={6}>
+                                    <Card
+                                        elevation={0}
+                                        sx={{
+                                            borderRadius: "16px",
+                                            background: allowVoice ? "rgba(34, 197, 94, 0.04)" : "rgba(239, 68, 68, 0.04)",
+                                            border: `1.5px solid ${allowVoice ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)"}`,
+                                            transition: "all 0.3s"
+                                        }}
+                                    >
+                                        <CardContent sx={{ p: "20px !important", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                                <Avatar sx={{ background: allowVoice ? "#22c55e" : "#ef4444", width: 40, height: 40 }}>
+                                                    {allowVoice ? <MicIcon /> : <MicOffIcon />}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography fontWeight={700} fontSize="0.95rem">Microphones</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {allowVoice ? "Students can talk" : "Muted on join"}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Switch checked={allowVoice} onChange={(e) => setAllowVoice(e.target.checked)} color="success" />
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Card
+                                        elevation={0}
+                                        sx={{
+                                            borderRadius: "16px",
+                                            background: allowVideo ? "rgba(34, 197, 94, 0.04)" : "rgba(239, 68, 68, 0.04)",
+                                            border: `1.5px solid ${allowVideo ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)"}`,
+                                            transition: "all 0.3s"
+                                        }}
+                                    >
+                                        <CardContent sx={{ p: "20px !important", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                                <Avatar sx={{ background: allowVideo ? "#22c55e" : "#ef4444", width: 40, height: 40 }}>
+                                                    {allowVideo ? <VideocamIcon /> : <VideocamOffIcon />}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography fontWeight={700} fontSize="0.95rem">Cameras</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {allowVideo ? "Cameras enabled" : "Cameras locked"}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Switch checked={allowVideo} onChange={(e) => setAllowVideo(e.target.checked)} color="success" />
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            </Grid>
+
+                            {/* Who to Invite Selector */}
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, color: "#475569" }}>
+                                Target Invitation Audience
+                            </Typography>
+                            <Grid container spacing={2.5} sx={{ mb: 4 }}>
+                                <Grid item xs={12} sm={6}>
+                                    <Paper
+                                        onClick={() => setInviteType("all")}
+                                        elevation={0}
+                                        sx={{
+                                            p: 2.5,
+                                            borderRadius: "16px",
+                                            border: `2px solid ${inviteType === "all" ? "#7c3aed" : "rgba(226, 232, 240, 0.8)"}`,
+                                            background: inviteType === "all" ? "rgba(124, 58, 237, 0.03)" : "#fff",
+                                            cursor: "pointer",
+                                            textAlign: "center",
+                                            transition: "all 0.2s"
+                                        }}
+                                    >
+                                        <GroupsIcon sx={{ fontSize: 32, color: inviteType === "all" ? "#7c3aed" : "#94a3b8", mb: 1 }} />
+                                        <Typography fontWeight={700} fontSize="0.95rem" color={inviteType === "all" ? "#7c3aed" : "#475569"}>
+                                            Entire Class
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Notify all enrolled students
+                                        </Typography>
+                                    </Paper>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Paper
+                                        onClick={() => setInviteType("manual")}
+                                        elevation={0}
+                                        sx={{
+                                            p: 2.5,
+                                            borderRadius: "16px",
+                                            border: `2px solid ${inviteType === "manual" ? "#7c3aed" : "rgba(226, 232, 240, 0.8)"}`,
+                                            background: inviteType === "manual" ? "rgba(124, 58, 237, 0.03)" : "#fff",
+                                            cursor: "pointer",
+                                            textAlign: "center",
+                                            transition: "all 0.2s"
+                                        }}
+                                    >
+                                        <ClassIcon sx={{ fontSize: 32, color: inviteType === "manual" ? "#7c3aed" : "#94a3b8", mb: 1 }} />
+                                        <Typography fontWeight={700} fontSize="0.95rem" color={inviteType === "manual" ? "#7c3aed" : "#475569"}>
+                                            Custom Select
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Pick specific attendees to join
+                                        </Typography>
+                                    </Paper>
+                                </Grid>
+                            </Grid>
+
+                            {/* Manual Selection List */}
+                            {inviteType === "manual" && (
+                                <Box sx={{ mb: 4 }} className="animate-fadeIn">
+                                    <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
+                                        <TextField
+                                            size="small"
+                                            placeholder="Search student by name or roll..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            sx={{ flexGrow: 1, "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <SearchIcon fontSize="small" />
+                                                    </InputAdornment>
+                                                )
+                                            }}
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={selectedStudents.length === sclassStudents.length}
+                                                    indeterminate={selectedStudents.length > 0 && selectedStudents.length < sclassStudents.length}
+                                                    onChange={handleSelectAll}
+                                                    color="secondary"
+                                                    icon={<UncheckedIcon />}
+                                                    checkedIcon={<CheckCircleIcon />}
+                                                />
+                                            }
+                                            label={<Typography fontWeight={600} fontSize="0.85rem">Select All Enrolled</Typography>}
+                                        />
+                                    </Box>
+
+                                    {loading ? (
+                                        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                                            <CircularProgress size={30} />
+                                        </Box>
+                                    ) : (
+                                        <Paper
+                                            variant="outlined"
+                                            sx={{
+                                                maxHeight: 280,
+                                                overflow: "auto",
+                                                borderRadius: "16px",
+                                                borderColor: "rgba(226, 232, 240, 0.8)",
+                                                background: "#fafbfc"
+                                            }}
+                                        >
+                                            {filteredStudents.length === 0 ? (
+                                                <Box sx={{ py: 6, textCenter: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                                                    <InfoIcon sx={{ color: "#94a3b8", mb: 1, fontSize: 32 }} />
+                                                    <Typography color="text.secondary" variant="body2">No students found matching your query.</Typography>
+                                                </Box>
+                                            ) : (
+                                                <List sx={{ py: 0 }}>
+                                                    {filteredStudents.map((student, idx) => {
+                                                        const isSelected = selectedStudents.includes(student._id);
+                                                        return (
+                                                            <React.Fragment key={student._id}>
+                                                                <ListItem
+                                                                    button
+                                                                    onClick={() => handleSelectStudent(student._id)}
+                                                                    sx={{
+                                                                        py: 1,
+                                                                        px: 2.5,
+                                                                        background: isSelected ? "rgba(124, 58, 237, 0.04)" : "transparent",
+                                                                        "&:hover": { background: "rgba(124, 58, 237, 0.08)" }
+                                                                    }}
+                                                                >
+                                                                    <Checkbox
+                                                                        edge="start"
+                                                                        checked={isSelected}
+                                                                        color="secondary"
+                                                                        icon={<UncheckedIcon />}
+                                                                        checkedIcon={<CheckCircleIcon />}
+                                                                        sx={{ mr: 2 }}
+                                                                    />
+                                                                    <ListItemAvatar>
+                                                                        <Avatar sx={{ bgcolor: isSelected ? "#7c3aed" : "#e2e8f0", color: isSelected ? "#fff" : "#4f46e5" }}>
+                                                                            <SchoolIcon fontSize="small" />
+                                                                        </Avatar>
+                                                                    </ListItemAvatar>
+                                                                    <ListItemText
+                                                                        primary={<Typography fontWeight={600} fontSize="0.9rem">{student.name}</Typography>}
+                                                                        secondary={`Roll: ${student.rollNum || "N/A"}`}
+                                                                    />
+                                                                </ListItem>
+                                                                {idx < filteredStudents.length - 1 && <Divider sx={{ borderColor: "rgba(226, 232, 240, 0.5)" }} />}
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+                                                </List>
+                                            )}
+                                        </Paper>
+                                    )}
+                                    <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#64748b", fontWeight: 500 }}>
+                                        Selected: <strong>{selectedStudents.length}</strong> of <strong>{sclassStudents?.length || 0}</strong> students.
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            <Button
+                                type="submit"
+                                fullWidth
+                                variant="contained"
+                                size="large"
+                                disabled={loader}
+                                startIcon={!loader && <VideoCallIcon />}
+                                sx={{
+                                    py: 2,
+                                    borderRadius: "16px",
+                                    fontWeight: 800,
+                                    fontSize: 16,
+                                    textTransform: "none",
+                                    background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                                    boxShadow: "0 6px 20px rgba(124, 58, 237, 0.4)",
+                                    "&:hover": {
+                                        background: "linear-gradient(135deg, #3730a3, #6d28d9)",
+                                        boxShadow: "0 8px 25px rgba(124, 58, 237, 0.5)",
+                                        transform: "translateY(-1px)"
+                                    },
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                {loader ? <CircularProgress size={24} color="inherit" /> : "🚀 Launch Live Classroom"}
+                            </Button>
+                        </form>
+                    </Paper>
+                </Grid>
+
+                {/* Sidebar Info */}
+                <Grid item xs={12} lg={4}>
+                    <Grid container spacing={4}>
+                        <Grid item xs={12}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 3.5,
+                                    borderRadius: "24px",
+                                    boxShadow: "0 10px 40px rgba(0,0,0,0.03)",
+                                    border: "1px solid rgba(226, 232, 240, 0.8)",
+                                    background: "#fff"
+                                }}
+                            >
+                                <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                                    🎓 Class Information
+                                </Typography>
+                                <Divider sx={{ mb: 2 }} />
+                                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>ASSIGNED CLASS</Typography>
+                                        <Typography variant="body1" fontWeight={700} color="#1e293b">{className}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>SUBJECT</Typography>
+                                        <Typography variant="body1" fontWeight={700} color="#1e293b">{subjectName}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>INSTRUCTOR</Typography>
+                                        <Typography variant="body1" fontWeight={700} color="#1e293b">{currentUser?.name}</Typography>
+                                    </Box>
+                                </Box>
+                            </Paper>
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 3.5,
+                                    borderRadius: "24px",
+                                    boxShadow: "0 10px 40px rgba(0,0,0,0.03)",
+                                    border: "1px solid rgba(226, 232, 240, 0.8)",
+                                    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
+                                }}
+                            >
+                                <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                                    💡 Hosting Best Practices
+                                </Typography>
+                                <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                                    <Box sx={{ display: "flex", gap: 1.5 }}>
+                                        <Typography fontSize="1.2rem">🎙️</Typography>
+                                        <Box>
+                                            <Typography fontWeight={700} fontSize="0.875rem" color="#334155">Mute on Entrance</Typography>
+                                            <Typography variant="caption" color="text.secondary">Use the permissions switch to keep mics muted initially to avoid background echoes.</Typography>
+                                        </Box>
+                                    </Box>
+                                    <Box sx={{ display: "flex", gap: 1.5 }}>
+                                        <Typography fontSize="1.2rem">📋</Typography>
+                                        <Box>
+                                            <Typography fontWeight={700} fontSize="0.875rem" color="#334155">Share Codes Directly</Typography>
+                                            <Typography variant="caption" color="text.secondary">Enrolled students automatically receive a push notification, but you can copy the code/password to share in chats.</Typography>
+                                        </Box>
+                                    </Box>
+                                    <Box sx={{ display: "flex", gap: 1.5 }}>
+                                        <Typography fontSize="1.2rem">💻</Typography>
+                                        <Box>
+                                            <Typography fontWeight={700} fontSize="0.875rem" color="#334155">Real-time Control</Typography>
+                                            <Typography variant="caption" color="text.secondary">You can override permissions, mute individual students, or grant screen share rights from the in-room options.</Typography>
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
 
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
 
             <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-                <Alert severity="success" sx={{ fontWeight: 600 }}>Copied to clipboard!</Alert>
+                <Alert severity="success" sx={{ fontWeight: 600, borderRadius: "10px" }}>Copied to clipboard!</Alert>
             </Snackbar>
         </Box>
     );

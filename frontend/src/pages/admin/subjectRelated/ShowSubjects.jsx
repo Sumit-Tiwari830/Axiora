@@ -10,6 +10,8 @@ import {
     Paper,
     Box,
     IconButton,
+    Typography,
+    Avatar,
 } from '@mui/material';
 
 import TableTemplate from '../../../components/TableTemplate';
@@ -192,58 +194,44 @@ const ShowSubjects = () => {
 
     return (
         <>
-            <Paper
-                sx={{
-                    width: "100%",
-                    overflow: "hidden",
-                    borderRadius: "20px",
-                    boxShadow:
-                        "0 10px 30px rgba(0,0,0,0.08)",
-                }}
-            >
-                <Box
-                    sx={{
-                        p: 3,
-                        borderBottom:
-                            "1px solid #e2e8f0",
-                        background: "#fff",
-                    }}
-                >
-                    <h2
-                        style={{
-                            margin: 0,
-                            color: "#0f172a",
-                            fontWeight: 700,
-                        }}
-                    >
-                        Subjects
-                    </h2>
-
-                    <p
-                        style={{
-                            marginTop: "8px",
-                            color: "#64748b",
-                        }}
-                    >
-                        Manage all subjects and
-                        class assignments.
-                    </p>
+            <Box sx={{ p: { xs: 2, md: 3 } }} className="animate-fadeInUp">
+                {/* Page Header */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Avatar sx={{ width: 52, height: 52, background: "linear-gradient(135deg, #f59e0b, #ef4444)", boxShadow: "0 4px 16px rgba(245,158,11,0.3)" }}>
+                            <PostAddIcon />
+                        </Avatar>
+                        <Box>
+                            <Typography variant="h4" fontWeight={800} color="#0f172a">Subjects</Typography>
+                            <Typography color="#64748b" fontSize="0.88rem">
+                                {subjectRows.length} subject{subjectRows.length !== 1 ? 's' : ''} across all classes
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <GreenButton variant="contained" onClick={() => navigate("/Admin/addsubject")} sx={{ borderRadius: "12px", px: 3, py: 1.2, fontWeight: 700, textTransform: "none" }}>
+                        + Add Subject
+                    </GreenButton>
                 </Box>
 
-                {subjectRows.length > 0 && (
-                    <TableTemplate
-                        buttonHaver={
-                            SubjectsButtonHaver
-                        }
-                        columns={subjectColumns}
-                        rows={subjectRows}
-                    />
-                )}
+                <Paper
+                    sx={{
+                        width: "100%",
+                        overflow: "hidden",
+                        borderRadius: "20px",
+                        boxShadow: "0 4px 24px rgba(79,70,229,0.08)",
+                    }}
+                >
+                    {subjectRows.length > 0 && (
+                        <TableTemplate
+                            buttonHaver={SubjectsButtonHaver}
+                            columns={subjectColumns}
+                            rows={subjectRows}
+                        />
+                    )}
 
-                <SpeedDialTemplate
-                    actions={actions}
-                />
-            </Paper>
+                    <SpeedDialTemplate actions={actions} />
+                </Paper>
+            </Box>
 
             <Popup
                 message={message}

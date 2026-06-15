@@ -100,7 +100,7 @@ const StudentProfile = () => {
                             height: 120,
                             fontSize: "3rem",
                             mb: 2,
-                            bgcolor: "#2563eb",
+                            background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
                         }}
                     >
                         {currentUser?.name

@@ -22,7 +22,8 @@ import {
     Chip,
     Tooltip,
     Switch,
-    FormControlLabel
+    FormControlLabel,
+    InputAdornment
 } from "@mui/material";
 import {
     Mic as MicIcon,
@@ -44,7 +45,9 @@ import {
     StarBorder as StarBorderIcon,
     VolumeOff as VolumeOffIcon,
     VolumeUp as VolumeUpIcon,
-    AdminPanelSettings as ModeratorIcon
+    AdminPanelSettings as ModeratorIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon
 } from "@mui/icons-material";
 import { io } from "socket.io-client";
 
@@ -77,6 +80,7 @@ const MeetingRoom = () => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(!initialPass);
     const [joinError, setJoinError] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     // ── Media ────────────────────────────────────────────────────
     const [localStream, setLocalStream] = useState(null);
@@ -587,6 +591,8 @@ const MeetingRoom = () => {
     const confirmEndClass = () => {
         if (socketRef.current?.connected) {
             socketRef.current.emit("end-class", { roomId });
+        } else {
+            leaveMeeting();
         }
         setShowEndConfirm(false);
     };
@@ -761,7 +767,7 @@ const MeetingRoom = () => {
                         variant="contained"
                         size="large"
                         onClick={() => navigate(currentRole === "Teacher" ? "/Teacher/dashboard" : "/Student/dashboard")}
-                        sx={{ borderRadius: "14px", fontWeight: 700, px: 4, py: 1.5, background: "linear-gradient(135deg, #2563eb, #7c3aed)", textTransform: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}
+                        sx={{ borderRadius: "14px", fontWeight: 700, px: 4, py: 1.5, background: "linear-gradient(135deg, #4f46e5, #7c3aed)", textTransform: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}
                     >
                         Return to Dashboard
                     </Button>
@@ -1199,7 +1205,7 @@ const MeetingRoom = () => {
                         Ask your teacher for the meeting password or PIN to join.
                     </Typography>
                     <TextField
-                        fullWidth type="password"
+                        fullWidth type={showPassword ? "text" : "password"}
                         label="Password / PIN"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
@@ -1207,6 +1213,19 @@ const MeetingRoom = () => {
                         error={!!joinError}
                         helperText={joinError}
                         autoFocus
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        edge="end"
+                                        sx={{ color: "rgba(255, 255, 255, 0.5)" }}
+                                    >
+                                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
                         sx={{
                             "& .MuiOutlinedInput-root": { color: "#fff", borderRadius: "12px", "& fieldset": { borderColor: "rgba(99,102,241,0.3)" }, "&:hover fieldset": { borderColor: "#6366f1" }, "&.Mui-focused fieldset": { borderColor: "#6366f1" } },
                             "& .MuiInputLabel-root": { color: "#64748b" },

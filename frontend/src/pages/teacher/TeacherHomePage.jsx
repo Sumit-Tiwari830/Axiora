@@ -1,10 +1,11 @@
-import { Container, Grid, Paper, Typography } from "@mui/material";
+import { Container, Grid, Paper, Typography, Box, Avatar } from "@mui/material";
+import {
+    People as PeopleIcon,
+    CalendarMonth as SessionIcon,
+    MenuBook as SubjectIcon,
+    AccessTime as TimeIcon,
+} from "@mui/icons-material";
 import SeeNotice from "../../components/SeeNotice";
-import styled from "styled-components";
-import Students from "../../assets/img1.png";
-import Lessons from "../../assets/subjects.svg";
-import Tests from "../../assets/assignment.svg";
-import Time from "../../assets/time.svg";
 import {
     getClassStudents,
     getSubjectDetails,
@@ -27,6 +28,33 @@ const useAnimatedCount = (target, duration = 1500) => {
     }, [target, duration]);
     return count;
 };
+
+const statConfig = [
+    {
+        label: "Class Students",
+        icon: PeopleIcon,
+        gradient: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+        type: "count",
+    },
+    {
+        label: "Total Sessions",
+        icon: SessionIcon,
+        gradient: "linear-gradient(135deg, #06b6d4, #3b82f6)",
+        type: "count",
+    },
+    {
+        label: "Subject Assigned",
+        icon: SubjectIcon,
+        gradient: "linear-gradient(135deg, #10b981, #059669)",
+        type: "text",
+    },
+    {
+        label: "Total Hours",
+        icon: TimeIcon,
+        gradient: "linear-gradient(135deg, #f59e0b, #ef4444)",
+        type: "hours",
+    },
+];
 
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
@@ -77,172 +105,123 @@ const TeacherHomePage = () => {
     const animSessions = useAnimatedCount(numberOfSessions);
     const animHours = useAnimatedCount(estimatedHours);
 
+    const subjectName = currentUser?.teachSubject?.subName || "Not Assigned";
+
+    const getStatValue = (index) => {
+        switch (index) {
+            case 0: return animStudents;
+            case 1: return animSessions;
+            case 2: return subjectName;
+            case 3: return `${animHours} hrs`;
+            default: return 0;
+        }
+    };
+
     return (
-        <Container
-            maxWidth="xl"
-            sx={{
-                mt: 4,
-                mb: 4,
-            }}
-        >
-            <Typography
-                variant="h4"
-                fontWeight={700}
-                mb={3}
+        <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }} className="animate-fadeInUp">
+            {/* Welcome Banner */}
+            <Paper
+                sx={{
+                    p: { xs: 3, md: 4 },
+                    mb: 4,
+                    borderRadius: "20px",
+                    background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%)",
+                    color: "#fff",
+                    position: "relative",
+                    overflow: "hidden",
+                    border: "none",
+                }}
             >
-                Teacher Dashboard
-            </Typography>
+                <Box sx={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+                <Box sx={{ position: "absolute", bottom: -60, right: 100, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
 
-            <Grid
-                container
-                spacing={3}
-            >
-                <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={3}
-                >
-                    <StyledPaper>
-                        <img
-                            src={Students}
-                            alt="Students"
-                            width="80"
-                        />
+                <Box sx={{ position: "relative", zIndex: 1 }}>
+                    <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.6)", mb: 0.5, display: "block" }}>
+                        Teacher Dashboard
+                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: "#fff" }}>
+                        Welcome, {currentUser?.name} 👋
+                    </Typography>
+                    <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.95rem" }}>
+                        Manage your classes, track attendance, and engage with students.
+                    </Typography>
+                </Box>
+            </Paper>
 
-                        <Title>
-                            Class Students
-                        </Title>
-
-                        <Data>{animStudents}</Data>
-                    </StyledPaper>
-                </Grid>
-
-                <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={3}
-                >
-                    <StyledPaper>
-                        <img
-                            src={Lessons}
-                            alt="Lessons"
-                            width="80"
-                        />
-
-                        <Title>
-                            Total Sessions
-                        </Title>
-
-                        <Data>{animSessions}</Data>
-                    </StyledPaper>
-                </Grid>
-
-                <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={3}
-                >
-                    <StyledPaper>
-                        <img
-                            src={Tests}
-                            alt="Tests"
-                            width="80"
-                        />
-
-                        <Title>
-                            Subject Assigned
-                        </Title>
-
-                        <Typography
-                            sx={{
-                                fontWeight: 600,
-                                color:
-                                    "#2563eb",
-                                textAlign:
-                                    "center",
-                            }}
-                        >
-                            {currentUser
-                                ?.teachSubject
-                                ?.subName ||
-                                "Not Assigned"}
-                        </Typography>
-                    </StyledPaper>
-                </Grid>
-
-                <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={3}
-                >
-                    <StyledPaper>
-                        <img
-                            src={Time}
-                            alt="Hours"
-                            width="80"
-                        />
-
-                        <Title>
-                            Total Hours
-                        </Title>
-
-                        <Data>{animHours} hrs</Data>
-                    </StyledPaper>
-                </Grid>
-
-                <Grid item xs={12}>
-                    <Paper
-                        sx={{
-                            p: 3,
-                            borderRadius:
-                                "20px",
-                            boxShadow:
-                                "0 10px 30px rgba(0,0,0,0.08)",
-                        }}
-                    >
-                        <Typography
-                            variant="h6"
-                            fontWeight={600}
-                            mb={2}
-                        >
-                            Latest Notices
-                        </Typography>
-
-                        <SeeNotice />
-                    </Paper>
-                </Grid>
+            {/* Stat Cards */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                {statConfig.map((stat, index) => {
+                    const Icon = stat.icon;
+                    const value = getStatValue(index);
+                    return (
+                        <Grid item xs={12} sm={6} md={3} key={stat.label}>
+                            <Paper
+                                className={`animate-fadeInUp delay-${(index + 1) * 100}`}
+                                sx={{
+                                    p: 3,
+                                    borderRadius: "16px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2.5,
+                                    transition: "all 0.3s ease",
+                                    cursor: "default",
+                                    "&:hover": {
+                                        transform: "translateY(-4px)",
+                                        boxShadow: "0 12px 32px rgba(79, 70, 229, 0.12)",
+                                    },
+                                }}
+                            >
+                                <Avatar
+                                    sx={{
+                                        width: 56,
+                                        height: 56,
+                                        background: stat.gradient,
+                                        boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
+                                    }}
+                                >
+                                    <Icon sx={{ fontSize: 28, color: "#fff" }} />
+                                </Avatar>
+                                <Box>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.8rem", mb: 0.3 }}
+                                    >
+                                        {stat.label}
+                                    </Typography>
+                                    {stat.type === "text" ? (
+                                        <Typography sx={{ fontSize: "1rem", fontWeight: 700, color: "#4f46e5" }}>
+                                            {value}
+                                        </Typography>
+                                    ) : (
+                                        <Typography
+                                            sx={{
+                                                fontSize: "1.75rem",
+                                                fontWeight: 800,
+                                                background: stat.gradient,
+                                                WebkitBackgroundClip: "text",
+                                                WebkitTextFillColor: "transparent",
+                                                lineHeight: 1.2,
+                                            }}
+                                        >
+                                            {value}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    );
+                })}
             </Grid>
+
+            {/* Notices Section */}
+            <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px" }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                    📋 Latest Notices
+                </Typography>
+                <SeeNotice />
+            </Paper>
         </Container>
     );
 };
-
-const StyledPaper = styled(Paper)`
-    padding: 20px;
-    height: 220px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    text-align: center;
-    border-radius: 20px !important;
-    box-shadow: 0 10px 30px
-        rgba(0, 0, 0, 0.08) !important;
-`;
-
-const Title = styled.p`
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
-`;
-
-const Data = styled.div`
-    font-size: 2rem;
-    font-weight: 700;
-    color: #16a34a;
-`;
 
 export default TeacherHomePage;

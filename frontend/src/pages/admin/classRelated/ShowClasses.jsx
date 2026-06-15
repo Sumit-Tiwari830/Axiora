@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconButton, Box, Menu, MenuItem, ListItemIcon, Tooltip } from '@mui/material';
+import { IconButton, Box, Menu, MenuItem, ListItemIcon, Tooltip, Typography, Avatar } from '@mui/material';
 import { Delete as DeleteIcon, PostAdd as PostAddIcon, PersonAddAlt1 as PersonAddAlt1Icon, AddCard as AddCardIcon } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -149,38 +149,51 @@ const ShowClasses = () => {
     return (
         <>
             {loading ?
-                <Box
-                    sx={{
-                        height: "70vh",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        fontSize: "1.2rem",
-                        fontWeight: 600,
-                        color: "#64748b",
-                    }}
-                >
+                <Box sx={{ height: "70vh", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "1.2rem", fontWeight: 600, color: "#64748b" }}>
                     Loading Classes...
                 </Box>
                 :
-                <>
-                    {getresponse ?
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                            <GreenButton variant="contained" onClick={() => navigate("/Admin/addclass")}>
-                                Add Class
-                            </GreenButton>
+                <Box sx={{ p: { xs: 2, md: 3 } }} className="animate-fadeInUp">
+                    {/* Page Header */}
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Avatar sx={{ width: 52, height: 52, background: "linear-gradient(135deg, #06b6d4, #3b82f6)", boxShadow: "0 4px 16px rgba(6,182,212,0.3)" }}>
+                                <AddCardIcon />
+                            </Avatar>
+                            <Box>
+                                <Typography variant="h4" fontWeight={800} color="#0f172a">Classes</Typography>
+                                <Typography color="#64748b" fontSize="0.88rem">
+                                    {Array.isArray(sclassesList) ? sclassesList.length : 0} class{(Array.isArray(sclassesList) ? sclassesList.length : 0) !== 1 ? 'es' : ''} created
+                                </Typography>
+                            </Box>
                         </Box>
-                        :
-                        <>
+                        <GreenButton variant="contained" onClick={() => navigate("/Admin/addclass")} sx={{ borderRadius: "12px", px: 3, py: 1.2, fontWeight: 700, textTransform: "none" }}>
+                            + Add Class
+                        </GreenButton>
+                    </Box>
+
+                    {getresponse ? (
+                        <Paper elevation={0} sx={{ p: 8, textAlign: "center", borderRadius: "20px", background: "rgba(79,70,229,0.02)", border: "1px dashed rgba(79,70,229,0.2)" }}>
+                            <Avatar sx={{ width: 72, height: 72, background: "linear-gradient(135deg, #06b6d4, #3b82f6)", mx: "auto", mb: 2 }}>
+                                <AddCardIcon sx={{ fontSize: 36 }} />
+                            </Avatar>
+                            <Typography variant="h6" fontWeight={700} color="#0f172a" mb={1}>No Classes Yet</Typography>
+                            <Typography color="#64748b" mb={3}>Create your first class to start managing students and subjects.</Typography>
+                            <GreenButton variant="contained" onClick={() => navigate("/Admin/addclass")} sx={{ borderRadius: "12px", px: 4, fontWeight: 700, textTransform: "none" }}>
+                                Add First Class
+                            </GreenButton>
+                        </Paper>
+                    ) : (
+                        <Paper elevation={0} sx={{ width: '100%', overflow: 'hidden', borderRadius: "20px", boxShadow: "0 4px 24px rgba(79,70,229,0.08)" }}>
                             {Array.isArray(sclassesList) && sclassesList.length > 0 &&
                                 <TableTemplate buttonHaver={SclassButtonHaver} columns={sclassColumns} rows={sclassRows} />
                             }
                             <SpeedDialTemplate actions={actions} />
-                        </>}
-                </>
+                        </Paper>
+                    )}
+                </Box>
             }
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
-
         </>
     );
 };

@@ -25,7 +25,7 @@ const AdminProfile = () => {
                             width: 120,
                             height: 120,
                             fontSize: "3rem",
-                            background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+                            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
                         }}
                     >
                         {currentUser?.name?.charAt(0)?.toUpperCase() || "A"}

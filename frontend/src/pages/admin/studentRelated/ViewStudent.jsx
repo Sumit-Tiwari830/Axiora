@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getUserDetails } from '../../../redux/userRelated/userHandle';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
-import { Box, Button, Collapse, IconButton, Table, TableBody, TableHead, Typography, Tab, Paper, BottomNavigation, BottomNavigationAction, Container } from '@mui/material';
+import { Box, Button, Collapse, IconButton, Table, TableBody, TableHead, Typography, Tab, Paper, BottomNavigation, BottomNavigationAction, Container, Avatar } from '@mui/material';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
@@ -309,47 +309,111 @@ const ViewStudent = () => {
     }
 
     const StudentDetailsSection = () => {
+        const initial = userDetails?.name?.charAt(0)?.toUpperCase() || 'S';
+        const gradients = [
+            "linear-gradient(135deg, #4f46e5, #7c3aed)",
+            "linear-gradient(135deg, #10b981, #059669)",
+            "linear-gradient(135deg, #06b6d4, #3b82f6)",
+        ];
+        const gradient = gradients[(userDetails?.rollNum || 0) % gradients.length];
+
+        const infoRows = [
+            { label: 'Name',        value: userDetails?.name,                  color: '#4f46e5' },
+            { label: 'Roll Number', value: userDetails?.rollNum,               color: '#10b981' },
+            { label: 'Class',       value: sclassName?.sclassName || 'N/A',    color: '#06b6d4' },
+            { label: 'School',      value: studentSchool?.schoolName || '—',    color: '#f59e0b' },
+        ];
+
         return (
-            <Box
-                sx={{
-                    p: 4,
-                    background: "#fff",
-                    borderRadius: "20px",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.08)"
-                }}
-            >
-                <Typography variant="h4" fontWeight={700} mb={3}>
-                    Student Profile
-                </Typography>
+            <Box>
+                {/* Profile Hero */}
+                <Paper
+                    sx={{
+                        p: { xs: 3, md: 4 },
+                        mb: 3,
+                        borderRadius: '20px',
+                        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        flexWrap: 'wrap',
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <Box sx={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+                    <Avatar
+                        sx={{
+                            width: 80, height: 80,
+                            fontSize: '2rem', fontWeight: 800,
+                            background: 'rgba(255,255,255,0.18)',
+                            border: '3px solid rgba(255,255,255,0.35)',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {initial}
+                    </Avatar>
+                    <Box sx={{ zIndex: 1 }}>
+                        <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.6)' }}>Student Profile</Typography>
+                        <Typography variant="h4" fontWeight={800} color="#fff">{userDetails?.name}</Typography>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                            Roll No. {userDetails?.rollNum} · {sclassName?.sclassName}
+                        </Typography>
+                    </Box>
+                </Paper>
 
-                <Typography mb={2}>
-                    <strong>Name:</strong> {userDetails?.name}
-                </Typography>
+                {/* Info Grid */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, mb: 3 }}>
+                    {infoRows.map((row) => (
+                        <Paper
+                            key={row.label}
+                            sx={{
+                                p: 2.5, borderRadius: '16px',
+                                display: 'flex', alignItems: 'center', gap: 2,
+                                border: `1px solid ${row.color}22`,
+                                transition: 'all 0.3s ease',
+                                '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 6px 20px ${row.color}22` },
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    width: 10, height: 10, borderRadius: '50%',
+                                    background: row.color, flexShrink: 0,
+                                }}
+                            />
+                            <Box>
+                                <Typography variant="caption" color="#94a3b8" fontWeight={600} sx={{ letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+                                    {row.label}
+                                </Typography>
+                                <Typography fontWeight={700} color="#0f172a" fontSize="1rem">
+                                    {row.value}
+                                </Typography>
+                            </Box>
+                        </Paper>
+                    ))}
+                </Box>
 
-                <Typography mb={2}>
-                    <strong>Roll Number:</strong> {userDetails?.rollNum}
-                </Typography>
-
-                <Typography mb={2}>
-                    <strong>Class:</strong>{" "}
-                    {sclassName?.sclassName || "Not Assigned"}
-                </Typography>
-
-                <Typography mb={4}>
-                    <strong>School:</strong>{" "}
-                    {studentSchool?.schoolName || "-"}
-                </Typography>
-
+                {/* Attendance Chart */}
                 {subjectAttendance && Array.isArray(subjectAttendance) && subjectAttendance.length > 0 && (
-                    <CustomPieChart data={chartData} />
+                    <Paper sx={{ p: 3, borderRadius: '20px', mb: 3 }}>
+                        <Typography variant="h6" fontWeight={700} color="#0f172a" mb={2}>Overall Attendance</Typography>
+                        <CustomPieChart data={chartData} />
+                    </Paper>
                 )}
 
-                <Button variant="contained" sx={styles.styledButton} onClick={deleteHandler}>
-                    Delete
+                <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={deleteHandler}
+                    sx={{ borderRadius: '12px', px: 3, py: 1.2, fontWeight: 700, textTransform: 'none' }}
+                >
+                    Delete Student
                 </Button>
             </Box>
-        )
-    }
+        );
+    };
 
     return (
         <>
