@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getAllStudents } from '../../../redux/studentRelated/studentHandle';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
 import {
-    Paper, Box, IconButton
+    Paper, Box, IconButton, Typography, Avatar, Chip
 } from '@mui/material';
 import { PersonRemove as PersonRemoveIcon, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
 import { BlackButton, BlueButton, GreenButton } from '../../../components/buttonStyles';
@@ -184,72 +184,49 @@ const ShowStudents = () => {
     return (
         <>
             {loading ?
-                <Box
-                    sx={{
-                        height: "70vh",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        fontSize: "1.2rem",
-                        fontWeight: 600,
-                        color: "#64748b",
-                    }}
-                >
+                <Box sx={{ height: "70vh", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "1.2rem", fontWeight: 600, color: "#64748b" }}>
                     Loading Students...
                 </Box>
                 :
-                <>
+                <Box sx={{ p: { xs: 2, md: 3 } }} className="animate-fadeInUp">
+                    {/* Page Header */}
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Avatar sx={{ width: 52, height: 52, background: "linear-gradient(135deg, #4f46e5, #7c3aed)", boxShadow: "0 4px 16px rgba(79,70,229,0.3)" }}>
+                                <PersonAddAlt1Icon />
+                            </Avatar>
+                            <Box>
+                                <Typography variant="h4" fontWeight={800} color="#0f172a">Students</Typography>
+                                <Typography color="#64748b" fontSize="0.88rem">
+                                    {Array.isArray(studentsList) ? studentsList.length : 0} student{(Array.isArray(studentsList) ? studentsList.length : 0) !== 1 ? 's' : ''} enrolled
+                                </Typography>
+                            </Box>
+                        </Box>
+                        <GreenButton variant="contained" onClick={() => navigate("/Admin/addstudents")} sx={{ borderRadius: "12px", px: 3, py: 1.2, fontWeight: 700, textTransform: "none" }}>
+                            + Add Student
+                        </GreenButton>
+                    </Box>
+
                     {response ? (
-                        <Box
-                            sx={{
-                                textAlign: "center",
-                                py: 8,
-                            }}
-                        >
-                            <h2>No Students Found</h2>
-                            <GreenButton
-                                variant="contained"
-                                onClick={() =>
-                                    navigate("/Admin/addstudents")
-                                }
-                            >
+                        <Paper sx={{ p: 8, textAlign: "center", borderRadius: "20px", background: "rgba(79,70,229,0.02)", border: "1px dashed rgba(79,70,229,0.2)" }}>
+                            <Avatar sx={{ width: 72, height: 72, background: "linear-gradient(135deg, #4f46e5, #7c3aed)", mx: "auto", mb: 2 }}>
+                                <PersonAddAlt1Icon sx={{ fontSize: 36 }} />
+                            </Avatar>
+                            <Typography variant="h6" fontWeight={700} color="#0f172a" mb={1}>No Students Found</Typography>
+                            <Typography color="#64748b" mb={3}>Add your first student to get started.</Typography>
+                            <GreenButton variant="contained" onClick={() => navigate("/Admin/addstudents")} sx={{ borderRadius: "12px", px: 4, fontWeight: 700, textTransform: "none" }}>
                                 Add First Student
                             </GreenButton>
-                        </Box>
+                        </Paper>
                     ) : (
-                        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-                            <Box
-                                sx={{
-                                    p: 3,
-                                    borderBottom: "1px solid #e2e8f0",
-                                }}
-                            >
-                                <h2
-                                    style={{
-                                        margin: 0,
-                                        color: "#0f172a",
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    Students
-                                </h2>
-
-                                <p
-                                    style={{
-                                        marginTop: "8px",
-                                        color: "#64748b",
-                                    }}
-                                >
-                                    Manage all students in your school.
-                                </p>
-                            </Box>
+                        <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: "20px", boxShadow: "0 4px 24px rgba(79,70,229,0.08)" }}>
                             {Array.isArray(studentsList) && studentsList.length > 0 &&
                                 <TableTemplate buttonHaver={StudentButtonHaver} columns={studentColumns} rows={studentRows} />
                             }
                             <SpeedDialTemplate actions={actions} />
                         </Paper>
                     )}
-                </>
+                </Box>
             }
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
         </>
