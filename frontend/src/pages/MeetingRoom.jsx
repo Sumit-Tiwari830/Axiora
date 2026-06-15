@@ -919,7 +919,7 @@ const MeetingRoom = () => {
                     <Box sx={{ width: 320, flexShrink: 0, background: "rgba(15,23,42,0.99)", borderLeft: "1px solid rgba(99,102,241,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                         {/* Panel Header */}
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, py: 2, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                            <Typography fontWeight={700} sx={{ fontSize: 15 }}>
+                            <Typography fontWeight={700} sx={{ fontSize: 15, color: "#f1f5f9" }}>
                                 {sidePanel === "chat" ? "💬 Class Chat" : "👥 Participants"}
                             </Typography>
                             <IconButton size="small" onClick={() => setSidePanel(null)} sx={{ color: "#475569", "&:hover": { color: "#94a3b8" } }}>
@@ -953,11 +953,11 @@ const MeetingRoom = () => {
                                                             {msg.sender?.[0]?.toUpperCase()}
                                                         </Avatar>
                                                     )}
-                                                    <Typography variant="caption" sx={{ color: isTeacher && !isMe ? "#a78bfa" : "#475569", fontWeight: isTeacher ? 700 : 400 }}>
+                                                    <Typography variant="caption" sx={{ color: isMe ? "#a5b4fc" : isTeacher ? "#c084fc" : "#cbd5e1", fontWeight: (isTeacher || isMe) ? 700 : 400 }}>
                                                         {isMe ? "You" : msg.sender}
                                                         {isTeacher && !isMe ? " · 👨‍🏫" : ""}
                                                     </Typography>
-                                                    <Typography variant="caption" sx={{ color: "#334155", fontSize: 10 }}>
+                                                    <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: 10 }}>
                                                         {msg.time}
                                                     </Typography>
                                                 </Box>
@@ -968,7 +968,7 @@ const MeetingRoom = () => {
                                                     maxWidth: "88%",
                                                     border: isMe ? "none" : isTeacher ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(255,255,255,0.07)"
                                                 }}>
-                                                    <Typography variant="body2" sx={{ lineHeight: 1.5 }}>{msg.text}</Typography>
+                                                    <Typography variant="body2" sx={{ lineHeight: 1.5, color: "#ffffff" }}>{msg.text}</Typography>
                                                 </Box>
                                             </Box>
                                         );
@@ -991,7 +991,7 @@ const MeetingRoom = () => {
                                                 "&:hover fieldset": { borderColor: "rgba(99,102,241,0.4)" }, 
                                                 "&.Mui-focused fieldset": { borderColor: "#6366f1" },
                                                 "&.Mui-focused": {
-                                                    backgroundColor: "#1e293b"
+                                                    backgroundColor: "#1e293b !important"
                                                 }
                                             },
                                             "& .MuiInputBase-input::placeholder": { color: "#475569", opacity: 1 }
@@ -1245,7 +1245,7 @@ const MeetingRoom = () => {
                                 "&:hover fieldset": { borderColor: "#6366f1" }, 
                                 "&.Mui-focused fieldset": { borderColor: "#6366f1" },
                                 "&.Mui-focused": {
-                                    backgroundColor: "#1e293b"
+                                    backgroundColor: "#1e293b !important"
                                 }
                             },
                             "& .MuiInputLabel-root": { color: "#64748b" },
