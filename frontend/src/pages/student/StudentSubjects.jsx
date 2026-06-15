@@ -13,11 +13,21 @@ import {
     TableHead,
     Typography,
     Box,
+    Avatar,
+    Chip,
 } from "@mui/material";
 
 import CustomBarChart from "../../components/CustomBarChart";
 
-import { InsertChart as InsertChartIcon, InsertChartOutlined as InsertChartOutlinedIcon, TableChart as TableChartIcon, TableChartOutlined as TableChartOutlinedIcon } from '@mui/icons-material';
+import {
+    InsertChart as InsertChartIcon,
+    InsertChartOutlined as InsertChartOutlinedIcon,
+    TableChart as TableChartIcon,
+    TableChartOutlined as TableChartOutlinedIcon,
+    MenuBook as SubjectIcon,
+    Class as ClassIcon,
+    BarChart as BarChartIcon,
+} from '@mui/icons-material';
 
 import {
     StyledTableCell,
@@ -141,49 +151,99 @@ const StudentSubjects = () => {
     );
 
     const renderClassDetailsSection = () => (
-        <Box
-            sx={{
-                p: 4,
-                background: "#fff",
-                borderRadius: "20px",
-                boxShadow:
-                    "0 10px 30px rgba(0,0,0,0.08)",
-            }}
-        >
-            <Typography
-                variant="h4"
-                fontWeight={700}
-                mb={3}
+        <Box sx={{ p: { xs: 2, md: 3 } }} className="animate-fadeInUp">
+            {/* Header Banner */}
+            <Paper
+                sx={{
+                    p: { xs: 3, md: 4 },
+                    mb: 3,
+                    borderRadius: "20px",
+                    background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%)",
+                    color: "#fff",
+                    position: "relative",
+                    overflow: "hidden",
+                }}
             >
-                Class Details
-            </Typography>
+                <Box sx={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+                <Box sx={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 2.5 }}>
+                    <Avatar sx={{ width: 56, height: 56, background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)" }}>
+                        <SubjectIcon sx={{ fontSize: 28 }} />
+                    </Avatar>
+                    <Box>
+                        <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.6)", display: "block" }}>Student Portal</Typography>
+                        <Typography variant="h4" fontWeight={800} color="#fff">My Subjects</Typography>
+                        <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.9rem" }}>
+                            Class: {currentUser?.sclassName?.sclassName}
+                        </Typography>
+                    </Box>
+                </Box>
+            </Paper>
 
-            <Typography mb={2}>
-                <strong>Class:</strong>{" "}
-                {
-                    currentUser?.sclassName
-                        ?.sclassName
-                }
-            </Typography>
-
-            <Typography
-                variant="h6"
-                mb={2}
-            >
-                Subjects
-            </Typography>
-
-            {subjectsList?.map(
-                (subject) => (
-                    <Typography
-                        key={subject._id}
-                        sx={{ mb: 1 }}
-                    >
-                        • {subject.subName} (
-                        {subject.subCode})
+            {/* Subject Cards */}
+            <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: "0 4px 24px rgba(79,70,229,0.08)" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+                    <Avatar sx={{ width: 40, height: 40, background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}>
+                        <ClassIcon sx={{ fontSize: 20 }} />
+                    </Avatar>
+                    <Typography variant="h6" fontWeight={700} color="#0f172a">
+                        Enrolled Subjects
                     </Typography>
-                )
-            )}
+                    <Chip
+                        label={`${subjectsList?.length || 0} subjects`}
+                        size="small"
+                        sx={{ background: "rgba(79,70,229,0.08)", color: "#4f46e5", fontWeight: 600 }}
+                    />
+                </Box>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2 }}>
+                    {subjectsList?.map((subject, index) => {
+                        const gradients = [
+                            "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                            "linear-gradient(135deg, #06b6d4, #3b82f6)",
+                            "linear-gradient(135deg, #10b981, #059669)",
+                            "linear-gradient(135deg, #f59e0b, #ef4444)",
+                            "linear-gradient(135deg, #ec4899, #be185d)",
+                        ];
+                        return (
+                            <Box
+                                key={subject._id}
+                                sx={{
+                                    p: 2.5,
+                                    borderRadius: "16px",
+                                    border: "1px solid #e2e8f0",
+                                    transition: "all 0.3s ease",
+                                    "&:hover": { transform: "translateY(-4px)", boxShadow: "0 8px 24px rgba(79,70,229,0.12)", borderColor: "#c7d2fe" },
+                                }}
+                            >
+                                <Avatar
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        background: gradients[index % gradients.length],
+                                        mb: 1.5,
+                                        fontSize: "1rem",
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {subject.subName?.charAt(0)}
+                                </Avatar>
+                                <Typography fontWeight={700} color="#0f172a" fontSize="0.95rem">
+                                    {subject.subName}
+                                </Typography>
+                                <Typography variant="caption" color="#64748b" fontWeight={500}>
+                                    Code: {subject.subCode}
+                                </Typography>
+                            </Box>
+                        );
+                    })}
+                </Box>
+
+                {(!subjectsList || subjectsList.length === 0) && (
+                    <Typography color="#64748b" textAlign="center" py={4}>
+                        No subjects assigned to your class yet.
+                    </Typography>
+                )}
+            </Paper>
         </Box>
     );
 
