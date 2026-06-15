@@ -85,7 +85,7 @@ const Logo = styled.h1`
   margin-bottom: 25px;
   background: linear-gradient(
     90deg,
-    #2563eb,
+    #4f46e5,
     #7c3aed
   );
   -webkit-background-clip: text;
@@ -99,7 +99,7 @@ const Avatar = styled.div`
   border-radius: 50%;
   background: linear-gradient(
     135deg,
-    #2563eb,
+    #4f46e5,
     #7c3aed
   );
   color: white;

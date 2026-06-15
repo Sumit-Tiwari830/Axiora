@@ -79,7 +79,7 @@ const TeacherDetails = () => {
                     sx={{
                         p: 4,
                         background:
-                            "linear-gradient(135deg,#2563eb,#7c3aed)",
+                            "linear-gradient(135deg,#4f46e5,#7c3aed)",
                         color: "#fff",
                     }}
                 >
@@ -203,10 +203,10 @@ const TeacherDetails = () => {
                                 py: 1.3,
                                 px: 3,
                                 background:
-                                    "linear-gradient(135deg,#2563eb,#7c3aed)",
+                                    "linear-gradient(135deg,#4f46e5,#7c3aed)",
                                 "&:hover": {
                                     background:
-                                        "linear-gradient(135deg,#1d4ed8,#6d28d9)",
+                                        "linear-gradient(135deg,#3730a3,#5b21b6)",
                                 },
                             }}
                         >

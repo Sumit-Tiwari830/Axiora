@@ -761,7 +761,7 @@ const MeetingRoom = () => {
                         variant="contained"
                         size="large"
                         onClick={() => navigate(currentRole === "Teacher" ? "/Teacher/dashboard" : "/Student/dashboard")}
-                        sx={{ borderRadius: "14px", fontWeight: 700, px: 4, py: 1.5, background: "linear-gradient(135deg, #2563eb, #7c3aed)", textTransform: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}
+                        sx={{ borderRadius: "14px", fontWeight: 700, px: 4, py: 1.5, background: "linear-gradient(135deg, #4f46e5, #7c3aed)", textTransform: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}
                     >
                         Return to Dashboard
                     </Button>

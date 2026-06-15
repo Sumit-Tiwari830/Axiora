@@ -173,11 +173,11 @@ const TeacherMeeting = () => {
                 }}
             >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-                    <Box sx={{ p: 1.5, borderRadius: "16px", background: "linear-gradient(135deg, #2563eb, #7c3aed)", display: "flex" }}>
+                    <Box sx={{ p: 1.5, borderRadius: "16px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex" }}>
                         <VideoCallIcon sx={{ fontSize: 32, color: "#fff" }} />
                     </Box>
                     <Box>
-                        <Typography variant="h4" fontWeight={800} sx={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                        <Typography variant="h4" fontWeight={800} sx={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                             Launch Live Class
                         </Typography>
                         <Typography color="text.secondary" variant="body2">
@@ -342,10 +342,10 @@ const TeacherMeeting = () => {
                             borderRadius: "14px",
                             fontWeight: 700,
                             fontSize: 16,
-                            background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
                             boxShadow: "0 6px 20px rgba(124, 58, 237, 0.4)",
                             "&:hover": {
-                                background: "linear-gradient(135deg, #1d4ed8, #6d28d9)",
+                                background: "linear-gradient(135deg, #3730a3, #6d28d9)",
                                 boxShadow: "0 8px 25px rgba(124, 58, 237, 0.5)"
                             }
                         }}

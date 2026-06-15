@@ -80,7 +80,7 @@ const StudentFee = () => {
                     contact: "9999999999"
                 },
                 theme: {
-                    color: "#2563eb"
+                    color: "#4f46e5"
                 }
             };
 

@@ -145,7 +145,7 @@ const ChooseClass = ({ situation }) => {
                 gutterBottom
                 sx={{
                     mb: 3,
-                    color: "#2563eb",
+                    color: "primary.main",
                 }}
             >
                 Choose a Class
