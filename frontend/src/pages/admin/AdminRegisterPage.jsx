@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
 
 import {
     Grid,
@@ -45,43 +46,65 @@ const AdminRegisterPage = () => {
     const [adminNameError, setAdminNameError] = useState(false);
     const [schoolNameError, setSchoolNameError] = useState(false);
 
+    const [name, setName] = useState("");
+    const [schoolName, setSchoolName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [otp, setOtp] = useState("");
+    const [isOtpSent, setIsOtpSent] = useState(false);
+    const [otpError, setOtpError] = useState(false);
+
     const role = "Admin";
+    const api = import.meta.env.VITE_REACT_APP_BASE_URL;
+
+    const handleSendOtp = async () => {
+        try {
+            const response = await axios.post(`${api}/send-otp`, { email, schoolName });
+            if (response.data?.message === "OTP sent to email successfully.") {
+                setIsOtpSent(true);
+                setMessage("OTP sent to your email successfully.");
+                setShowPopup(true);
+            } else {
+                setMessage(response.data?.message || "Failed to send OTP.");
+                setShowPopup(true);
+            }
+        } catch (err) {
+            setMessage(err.response?.data?.message || err.message || "An error occurred.");
+            setShowPopup(true);
+        } finally {
+            setLoader(false);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const name = e.target.adminName.value;
-        const schoolName = e.target.schoolName.value;
-        const email = e.target.email.value;
-        const password = e.target.password.value;
-
-        if (!name || !schoolName || !email || !password) {
-            setAdminNameError(!name);
-            setSchoolNameError(!schoolName);
-            setEmailError(!email);
-            setPasswordError(!password);
-            return;
+        if (!isOtpSent) {
+            if (!name || !schoolName || !email || !password) {
+                setAdminNameError(!name);
+                setSchoolNameError(!schoolName);
+                setEmailError(!email);
+                setPasswordError(!password);
+                return;
+            }
+            setLoader(true);
+            handleSendOtp();
+        } else {
+            if (!otp) {
+                setOtpError(true);
+                return;
+            }
+            const fields = {
+                name,
+                schoolName,
+                email,
+                password,
+                role,
+                otp,
+            };
+            setLoader(true);
+            dispatch(registerUser(fields, role));
         }
-
-        const fields = {
-            name,
-            schoolName,
-            email,
-            password,
-            role,
-        };
-
-        setLoader(true);
-        dispatch(registerUser(fields, role));
-    };
-
-    const handleInputChange = (e) => {
-        const { name } = e.target;
-
-        if (name === "adminName") setAdminNameError(false);
-        if (name === "schoolName") setSchoolNameError(false);
-        if (name === "email") setEmailError(false);
-        if (name === "password") setPasswordError(false);
     };
 
     useEffect(() => {
@@ -158,9 +181,14 @@ const AdminRegisterPage = () => {
                                     margin="normal"
                                     name="adminName"
                                     label="Admin Name"
+                                    value={name}
+                                    disabled={isOtpSent}
                                     error={adminNameError}
                                     helperText={adminNameError && "Name is required"}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        setName(e.target.value);
+                                        setAdminNameError(false);
+                                    }}
                                 />
 
                                 <TextField
@@ -168,9 +196,14 @@ const AdminRegisterPage = () => {
                                     margin="normal"
                                     name="schoolName"
                                     label="School Name"
+                                    value={schoolName}
+                                    disabled={isOtpSent}
                                     error={schoolNameError}
                                     helperText={schoolNameError && "School Name is required"}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        setSchoolName(e.target.value);
+                                        setSchoolNameError(false);
+                                    }}
                                 />
 
                                 <TextField
@@ -178,9 +211,14 @@ const AdminRegisterPage = () => {
                                     margin="normal"
                                     name="email"
                                     label="Email Address"
+                                    value={email}
+                                    disabled={isOtpSent}
                                     error={emailError}
                                     helperText={emailError && "Email is required"}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setEmailError(false);
+                                    }}
                                 />
 
                                 <TextField
@@ -189,9 +227,14 @@ const AdminRegisterPage = () => {
                                     name="password"
                                     label="Password"
                                     type={toggle ? "text" : "password"}
+                                    value={password}
+                                    disabled={isOtpSent}
                                     error={passwordError}
                                     helperText={passwordError && "Password is required"}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        setPasswordError(false);
+                                    }}
                                     InputProps={{
                                         endAdornment: (
                                             <InputAdornment position="end">
@@ -209,6 +252,22 @@ const AdminRegisterPage = () => {
                                     }}
                                 />
 
+                                {isOtpSent && (
+                                    <TextField
+                                        fullWidth
+                                        margin="normal"
+                                        name="otp"
+                                        label="Verification OTP"
+                                        value={otp}
+                                        error={otpError}
+                                        helperText={otpError && "OTP is required"}
+                                        onChange={(e) => {
+                                            setOtp(e.target.value);
+                                            setOtpError(false);
+                                        }}
+                                    />
+                                )}
+
                                 <LightPurpleButton
                                     type="submit"
                                     fullWidth
@@ -223,8 +282,10 @@ const AdminRegisterPage = () => {
                                             size={24}
                                             color="inherit"
                                         />
+                                    ) : isOtpSent ? (
+                                        "Verify & Register"
                                     ) : (
-                                        "Register"
+                                        "Send OTP"
                                     )}
                                 </LightPurpleButton>
 

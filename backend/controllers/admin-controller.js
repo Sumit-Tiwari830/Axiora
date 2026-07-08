@@ -6,27 +6,92 @@ const Teacher = require('../models/teacherSchema.js');
 const Subject = require('../models/subjectSchema.js');
 const Notice = require('../models/noticeSchema.js');
 const Complain = require('../models/complainSchema.js');
+const OTP = require('../models/otpSchema.js');
+const nodemailer = require('nodemailer');
 
 const adminRegister = async (req, res) => {
     try {
-        const admin = new Admin({
-            ...req.body
-        });
+        const { otp, ...fields } = req.body;
 
-        const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
-        const existingSchool = await Admin.findOne({ schoolName: req.body.schoolName });
+        const existingAdminByEmail = await Admin.findOne({ email: fields.email });
+        const existingSchool = await Admin.findOne({ schoolName: fields.schoolName });
 
         if (existingAdminByEmail) {
-            res.send({ message: 'Email already exists' });
+            return res.send({ message: 'Email already exists' });
         }
-        else if (existingSchool) {
-            res.send({ message: 'School name already exists' });
+        if (existingSchool) {
+            return res.send({ message: 'School name already exists' });
         }
-        else {
-            let result = await admin.save();
-            result.password = undefined;
-            res.send(result);
+
+        // Verify OTP
+        const otpRecord = await OTP.findOne({ email: fields.email, otp });
+        if (!otpRecord) {
+            return res.send({ message: "Invalid or expired OTP" });
         }
+
+        const admin = new Admin({
+            ...fields
+        });
+
+        let result = await admin.save();
+        
+        // Delete the used OTP
+        await OTP.deleteOne({ email: fields.email });
+
+        result.password = undefined;
+        res.send(result);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+};
+
+const sendOTP = async (req, res) => {
+    try {
+        const { email, schoolName } = req.body;
+
+        const existingAdminByEmail = await Admin.findOne({ email });
+        const existingSchool = await Admin.findOne({ schoolName });
+
+        if (existingAdminByEmail) {
+            return res.send({ message: 'Email already exists' });
+        }
+        if (existingSchool) {
+            return res.send({ message: 'School name already exists' });
+        }
+
+        // Generate a 6 digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save OTP
+        await OTP.findOneAndUpdate(
+            { email },
+            { otp, createdAt: new Date() },
+            { upsert: true, new: true }
+        );
+
+        // Send email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'School Registration Verification OTP - Axiora',
+            text: `Your OTP for school registration verification is ${otp}. It will expire in 10 minutes.`
+        };
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await transporter.sendMail(mailOptions);
+        } else {
+            console.log("Email credentials not set. OTP generated:", otp);
+        }
+
+        res.send({ message: "OTP sent to email successfully." });
     } catch (err) {
         res.status(500).json(err);
     }
@@ -84,4 +149,4 @@ const updateAdmin = async (req, res) => {
 }
 
 
-module.exports = { adminRegister, adminLogIn, getAdminDetail, updateAdmin };
+module.exports = { adminRegister, adminLogIn, getAdminDetail, updateAdmin, sendOTP };
