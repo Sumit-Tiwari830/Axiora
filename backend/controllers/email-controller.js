@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const Student = require('../models/studentSchema.js');
 
 const addEmail = async (req, res) => {
@@ -20,31 +20,17 @@ const addEmail = async (req, res) => {
         
         await student.save();
         
-        // Send email
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            const transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: parseInt(process.env.SMTP_PORT || '587'),
-                secure: process.env.SMTP_SECURE ? (process.env.SMTP_SECURE === 'true') : false,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
-                },
-                connectionTimeout: 10000, // 10 seconds
-                greetingTimeout: 10000,    // 10 seconds
-                socketTimeout: 10000       // 10 seconds
-            });
-
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
+        // Send email via Resend
+        if (process.env.RESEND_API_KEY) {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+                from: 'onboarding@resend.dev',
                 to: email,
                 subject: 'Email Verification OTP - Axiora',
                 text: `Your OTP for email verification is ${otp}. It will expire in 10 minutes.`
-            };
-
-            await transporter.sendMail(mailOptions);
+            });
         } else {
-            console.log("Email credentials not set. OTP generated:", otp);
+            console.log("Resend API Key not set. OTP generated:", otp);
         }
 
         res.send({ message: "OTP sent to email successfully." });

@@ -7,16 +7,14 @@ const Subject = require('../models/subjectSchema.js');
 const Notice = require('../models/noticeSchema.js');
 const Complain = require('../models/complainSchema.js');
 const OTP = require('../models/otpSchema.js');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const adminRegister = async (req, res) => {
     try {
-        const admin = new Admin({
-            ...req.body
-        });
+        const { otp, ...fields } = req.body;
 
-        const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
-        const existingSchool = await Admin.findOne({ schoolName: req.body.schoolName });
+        const existingAdminByEmail = await Admin.findOne({ email: fields.email });
+        const existingSchool = await Admin.findOne({ schoolName: fields.schoolName });
 
         if (existingAdminByEmail) {
             return res.send({ message: 'Email already exists' });
@@ -25,7 +23,21 @@ const adminRegister = async (req, res) => {
             return res.send({ message: 'School name already exists' });
         }
 
+        // Verify OTP
+        const otpRecord = await OTP.findOne({ email: fields.email, otp });
+        if (!otpRecord) {
+            return res.send({ message: "Invalid or expired OTP" });
+        }
+
+        const admin = new Admin({
+            ...fields
+        });
+
         let result = await admin.save();
+        
+        // Delete the used OTP
+        await OTP.deleteOne({ email: fields.email });
+
         result.password = undefined;
         res.send(result);
     } catch (err) {
@@ -58,36 +70,23 @@ const sendOTP = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Send email
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            const transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: parseInt(process.env.SMTP_PORT || '587'),
-                secure: process.env.SMTP_SECURE ? (process.env.SMTP_SECURE === 'true') : false,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
-                },
-                connectionTimeout: 10000, // 10 seconds
-                greetingTimeout: 10000,    // 10 seconds
-                socketTimeout: 10000       // 10 seconds
-            });
-
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
+        // Send email via Resend
+        if (process.env.RESEND_API_KEY) {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+                from: 'onboarding@resend.dev',
                 to: email,
                 subject: 'School Registration Verification OTP - Axiora',
                 text: `Your OTP for school registration verification is ${otp}. It will expire in 10 minutes.`
-            };
-
-            await transporter.sendMail(mailOptions);
+            });
         } else {
-            console.log("Email credentials not set. OTP generated:", otp);
+            console.log("Resend API Key not set. OTP generated:", otp);
         }
 
         res.send({ message: "OTP sent to email successfully." });
     } catch (err) {
-        res.status(500).json(err);
+        console.error("Send OTP Error:", err);
+        res.status(500).json({ message: err.message || "Internal server error" });
     }
 };
 
