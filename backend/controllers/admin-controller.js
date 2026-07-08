@@ -70,22 +70,24 @@ const sendOTP = async (req, res) => {
         );
 
         // Send email
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'School Registration Verification OTP - Axiora',
-            text: `Your OTP for school registration verification is ${otp}. It will expire in 10 minutes.`
-        };
-
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: parseInt(process.env.SMTP_PORT || '465'),
+                secure: process.env.SMTP_SECURE ? (process.env.SMTP_SECURE === 'true') : true,
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'School Registration Verification OTP - Axiora',
+                text: `Your OTP for school registration verification is ${otp}. It will expire in 10 minutes.`
+            };
+
             await transporter.sendMail(mailOptions);
         } else {
             console.log("Email credentials not set. OTP generated:", otp);

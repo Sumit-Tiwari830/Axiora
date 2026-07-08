@@ -21,27 +21,29 @@ const addEmail = async (req, res) => {
         await student.save();
         
         // Send email
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-        
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Email Verification OTP - Axiora',
-            text: `Your OTP for email verification is ${otp}. It will expire in 10 minutes.`
-        };
-        
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: parseInt(process.env.SMTP_PORT || '465'),
+                secure: process.env.SMTP_SECURE ? (process.env.SMTP_SECURE === 'true') : true,
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Email Verification OTP - Axiora',
+                text: `Your OTP for email verification is ${otp}. It will expire in 10 minutes.`
+            };
+
             await transporter.sendMail(mailOptions);
         } else {
             console.log("Email credentials not set. OTP generated:", otp);
         }
-        
+
         res.send({ message: "OTP sent to email successfully." });
     } catch (err) {
         res.status(500).json(err);
