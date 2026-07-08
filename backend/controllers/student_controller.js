@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const Student = require('../models/studentSchema.js');
 const Subject = require('../models/subjectSchema.js');
 const Admin = require('../models/adminSchema.js');
+const { Resend } = require('resend');
 
 const studentRegister = async (req, res) => {
     try {
@@ -203,23 +204,15 @@ const updateExamResult = async (req, res) => {
                 });
                 await notice.save();
 
-                // Send email if student has a verified email and SMTP is configured
-                if (student.email && student.emailVerified && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                    const nodemailer = require('nodemailer');
-                    const transporter = nodemailer.createTransport({
-                        service: 'gmail',
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS
-                        }
-                    });
-                    const mailOptions = {
-                        from: process.env.EMAIL_USER,
+                // Send email if student has a verified email and Resend is configured
+                if (student.email && student.emailVerified && process.env.RESEND_API_KEY) {
+                    const resend = new Resend(process.env.RESEND_API_KEY);
+                    resend.emails.send({
+                        from: 'onboarding@resend.dev',
                         to: student.email,
                         subject: title,
                         text: details
-                    };
-                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send exam marks warning email", err));
+                    }).catch(err => console.error("Failed to send exam marks warning email", err));
                 }
             }
         }
@@ -304,23 +297,15 @@ const studentAttendance = async (req, res) => {
                 });
                 await notice.save();
 
-                // Send email warning
-                if (student.email && student.emailVerified && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                    const nodemailer = require('nodemailer');
-                    const transporter = nodemailer.createTransport({
-                        service: 'gmail',
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS
-                        }
-                    });
-                    const mailOptions = {
-                        from: process.env.EMAIL_USER,
+                // Send email warning if student has a verified email and Resend is configured
+                if (student.email && student.emailVerified && process.env.RESEND_API_KEY) {
+                    const resend = new Resend(process.env.RESEND_API_KEY);
+                    resend.emails.send({
+                        from: 'onboarding@resend.dev',
                         to: student.email,
                         subject: title,
                         text: details
-                    };
-                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send attendance warning email", err));
+                    }).catch(err => console.error("Failed to send attendance warning email", err));
                 }
             }
         }

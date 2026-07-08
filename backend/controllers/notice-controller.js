@@ -1,6 +1,6 @@
 const Notice = require('../models/noticeSchema.js');
 const Student = require('../models/studentSchema.js');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const noticeCreate = async (req, res) => {
     try {
@@ -20,26 +20,18 @@ const noticeCreate = async (req, res) => {
 
         if (studentsQuery) {
             const students = await Student.find(studentsQuery);
-            if (students.length > 0 && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS
-                    }
-                });
-
+            if (students.length > 0 && process.env.RESEND_API_KEY) {
                 const emails = students.map(s => s.email).filter(e => e);
 
                 if (emails.length > 0) {
-                    const mailOptions = {
-                        from: process.env.EMAIL_USER,
-                        bcc: emails, // Use bcc to hide recipients
+                    const resend = new Resend(process.env.RESEND_API_KEY);
+                    resend.emails.send({
+                        from: 'onboarding@resend.dev',
+                        to: 'onboarding@resend.dev',
+                        bcc: emails,
                         subject: `New Notice: ${req.body.title}`,
                         text: `A new notice has been posted.\n\nTitle: ${req.body.title}\nDetails: ${req.body.details}\nDate: ${req.body.date}`
-                    };
-
-                    transporter.sendMail(mailOptions).catch(err => console.error("Failed to send notice emails", err));
+                    }).catch(err => console.error("Failed to send notice emails", err));
                 }
             }
         }
