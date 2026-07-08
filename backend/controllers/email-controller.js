@@ -46,7 +46,8 @@ const addEmail = async (req, res) => {
 
         res.send({ message: "OTP sent to email successfully." });
     } catch (err) {
-        res.status(500).json(err);
+        console.error("Add Email Error:", err);
+        res.status(500).json({ message: err.message || "Internal server error" });
     }
 };
 
@@ -74,7 +75,8 @@ const verifyEmail = async (req, res) => {
         await student.save();
         res.send({ message: "Email verified successfully", student });
     } catch (err) {
-        res.status(500).json(err);
+        console.error("Verify Email Error:", err);
+        res.status(500).json({ message: err.message || "Internal server error" });
     }
 };
 
