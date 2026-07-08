@@ -208,7 +208,7 @@ const ShowSubjects = () => {
                             </Typography>
                         </Box>
                     </Box>
-                    <GreenButton variant="contained" onClick={() => navigate("/Admin/addsubject")} sx={{ borderRadius: "12px", px: 3, py: 1.2, fontWeight: 700, textTransform: "none" }}>
+                    <GreenButton variant="contained" onClick={() => navigate("/Admin/subjects/chooseclass")} sx={{ borderRadius: "12px", px: 3, py: 1.2, fontWeight: 700, textTransform: "none" }}>
                         + Add Subject
                     </GreenButton>
                 </Box>
