@@ -36,3 +36,8 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary test/scratch files
+get_otp.js
+test_*.js
+payload.json
