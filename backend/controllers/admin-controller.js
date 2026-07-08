@@ -34,7 +34,7 @@ const adminRegister = async (req, res) => {
         });
 
         let result = await admin.save();
-        
+
         // Delete the used OTP
         await OTP.deleteOne({ email: fields.email });
 
