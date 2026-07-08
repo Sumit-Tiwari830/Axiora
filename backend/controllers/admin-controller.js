@@ -11,10 +11,12 @@ const nodemailer = require('nodemailer');
 
 const adminRegister = async (req, res) => {
     try {
-        const { otp, ...fields } = req.body;
+        const admin = new Admin({
+            ...req.body
+        });
 
-        const existingAdminByEmail = await Admin.findOne({ email: fields.email });
-        const existingSchool = await Admin.findOne({ schoolName: fields.schoolName });
+        const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
+        const existingSchool = await Admin.findOne({ schoolName: req.body.schoolName });
 
         if (existingAdminByEmail) {
             return res.send({ message: 'Email already exists' });
@@ -23,25 +25,12 @@ const adminRegister = async (req, res) => {
             return res.send({ message: 'School name already exists' });
         }
 
-        // Verify OTP
-        const otpRecord = await OTP.findOne({ email: fields.email, otp });
-        if (!otpRecord) {
-            return res.send({ message: "Invalid or expired OTP" });
-        }
-
-        const admin = new Admin({
-            ...fields
-        });
-
         let result = await admin.save();
-
-        // Delete the used OTP
-        await OTP.deleteOne({ email: fields.email });
-
         result.password = undefined;
         res.send(result);
     } catch (err) {
-        res.status(500).json(err);
+        console.error("Admin Registration Error:", err);
+        res.status(500).json({ message: err.message || "Internal server error" });
     }
 };
 
