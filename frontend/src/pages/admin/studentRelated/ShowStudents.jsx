@@ -129,13 +129,12 @@ const ShowStudents = () => {
                     </ButtonGroup>
                     <Popper
                         sx={{
-                            zIndex: 1,
+                            zIndex: 1300,
                         }}
                         open={open}
                         anchorEl={anchorRef.current}
                         role={undefined}
                         transition
-                        disablePortal
                     >
                         {({ TransitionProps, placement }) => (
                             <Grow
