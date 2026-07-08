@@ -27,6 +27,8 @@ const ConfirmModal = ({
             open={open}
             onClose={onClose}
             TransitionComponent={Transition}
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-description"
             keepMounted
             PaperProps={{
                 sx: {
@@ -55,11 +57,11 @@ const ConfirmModal = ({
                         <WarningIcon sx={{ fontSize: 32 }} />
                     </Box>
                     
-                    <Typography variant="h5" fontWeight={800} color="#0f172a">
+                    <Typography id="confirm-dialog-title" variant="h5" fontWeight={800} color="#0f172a">
                         {title}
                     </Typography>
                     
-                    <Typography variant="body2" color="#64748b" sx={{ lineHeight: 1.6 }}>
+                    <Typography id="confirm-dialog-description" variant="body2" color="#64748b" sx={{ lineHeight: 1.6 }}>
                         {message}
                     </Typography>
                 </Box>
