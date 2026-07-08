@@ -21,6 +21,7 @@ import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import Popup from '../../../components/Popup';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const ShowStudents = () => {
 
@@ -39,14 +40,12 @@ const ShowStudents = () => {
 
     const [showPopup, setShowPopup] = React.useState(false);
     const [message, setMessage] = React.useState("");
+    const [openConfirm, setOpenConfirm] = React.useState(false);
+    const [deleteInfo, setDeleteInfo] = React.useState({ id: null, address: "" });
 
     const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        dispatch(deleteUser(deleteID, address))
-            .then(() => {
-                dispatch(getAllStudents(currentUser._id));
-            })
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     }
 
     const studentColumns = [
@@ -228,6 +227,16 @@ const ShowStudents = () => {
                     )}
                 </Box>
             }
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address))
+                        .then(() => {
+                            dispatch(getAllStudents(currentUser._id));
+                        });
+                }}
+            />
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
         </>
     );

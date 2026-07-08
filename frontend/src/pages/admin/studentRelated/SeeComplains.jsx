@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     Paper, Box, IconButton, Typography, Avatar, Chip, CircularProgress
@@ -12,6 +12,7 @@ import {
 import { getAllComplains } from '../../../redux/complainRelated/complainHandle';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
 import TableTemplate from '../../../components/TableTemplate';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const SeeComplains = () => {
     const dispatch = useDispatch();
@@ -26,10 +27,12 @@ const SeeComplains = () => {
 
     if (error) console.log(error);
 
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
+
     const deleteHandler = (deleteID, address) => {
-        dispatch(deleteUser(deleteID, address)).then(() => {
-            dispatch(getAllComplains(currentUser._id, "Complain"));
-        });
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     };
 
     const complainColumns = [
@@ -159,6 +162,15 @@ const SeeComplains = () => {
                     />
                 </Paper>
             )}
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address)).then(() => {
+                        dispatch(getAllComplains(currentUser._id, "Complain"));
+                    });
+                }}
+            />
         </Box>
     );
 };

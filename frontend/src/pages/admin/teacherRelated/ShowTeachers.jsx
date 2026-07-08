@@ -12,6 +12,7 @@ import { StyledTableCell, StyledTableRow } from '../../../components/styles';
 import { BlueButton, GreenButton } from '../../../components/buttonStyles';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import Popup from '../../../components/Popup';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const ShowTeachers = () => {
     const [page, setPage] = useState(0);
@@ -34,15 +35,12 @@ const ShowTeachers = () => {
 
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
 
     const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-
-        dispatch(deleteUser(deleteID, address))
-            .then(() => {
-                dispatch(getAllTeachers(currentUser._id));
-            })
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     };
 
     if (loading) {
@@ -321,6 +319,16 @@ const ShowTeachers = () => {
                 />
             </Paper>
 
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address))
+                        .then(() => {
+                            dispatch(getAllTeachers(currentUser._id));
+                        });
+                }}
+            />
             <Popup
                 message={message}
                 setShowPopup={setShowPopup}

@@ -18,6 +18,7 @@ import TableTemplate from '../../../components/TableTemplate';
 import { BlueButton, GreenButton } from '../../../components/buttonStyles';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import Popup from '../../../components/Popup';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const ShowSubjects = () => {
     const navigate = useNavigate();
@@ -53,17 +54,15 @@ const ShowSubjects = () => {
     const [message, setMessage] =
         useState("");
 
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
+
     const deleteHandler = (
         deleteID,
         address
     ) => {
-        console.log(deleteID);
-        console.log(address);
-
-        dispatch(deleteUser(deleteID, address))
-            .then(() => {
-                dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-            })
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     };
 
     const subjectColumns = [
@@ -233,6 +232,16 @@ const ShowSubjects = () => {
                 </Paper>
             </Box>
 
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address))
+                        .then(() => {
+                            dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+                        });
+                }}
+            />
             <Popup
                 message={message}
                 setShowPopup={setShowPopup}

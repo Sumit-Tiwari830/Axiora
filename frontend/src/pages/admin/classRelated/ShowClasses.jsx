@@ -13,6 +13,7 @@ import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import styled from 'styled-components';
 import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import Popup from '../../../components/Popup';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const ShowClasses = () => {
     const navigate = useNavigate()
@@ -33,14 +34,12 @@ const ShowClasses = () => {
 
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
 
     const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        dispatch(deleteUser(deleteID, address))
-          .then(() => {
-            dispatch(getAllSclasses(adminID, "Sclass"));
-          })
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     }
 
     const sclassColumns = [
@@ -193,6 +192,16 @@ const ShowClasses = () => {
                     )}
                 </Box>
             }
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address))
+                      .then(() => {
+                        dispatch(getAllSclasses(adminID, "Sclass"));
+                      });
+                }}
+            />
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
         </>
     );

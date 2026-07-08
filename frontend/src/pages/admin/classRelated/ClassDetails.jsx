@@ -15,6 +15,7 @@ import TableTemplate from "../../../components/TableTemplate";
 import { PersonAddAlt1 as PersonAddAlt1Icon, PersonRemove as PersonRemoveIcon, Delete as DeleteIcon, PostAdd as PostAddIcon } from '@mui/icons-material';
 import SpeedDialTemplate from "../../../components/SpeedDialTemplate";
 import Popup from "../../../components/Popup";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 const ClassDetails = () => {
     const params = useParams()
@@ -42,16 +43,12 @@ const ClassDetails = () => {
 
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
 
     const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        dispatch(deleteUser(deleteID, address))
-            .then(() => {
-                dispatch(getClassStudents(classID));
-                dispatch(resetSubjects())
-                dispatch(getSubjectList(classID, "ClassSubjects"))
-            })
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     }
 
     const subjectColumns = [
@@ -377,6 +374,18 @@ const ClassDetails = () => {
                     </Box>
                 </>
             )}
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={() => {
+                    dispatch(deleteUser(deleteInfo.id, deleteInfo.address))
+                        .then(() => {
+                            dispatch(getClassStudents(classID));
+                            dispatch(resetSubjects());
+                            dispatch(getSubjectList(classID, "ClassSubjects"));
+                        });
+                }}
+            />
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
         </>
     );

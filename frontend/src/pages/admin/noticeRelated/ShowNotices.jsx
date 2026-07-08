@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +24,7 @@ import {
 } from "../../../components/buttonStyles";
 
 import LinkifyText from "../../../components/LinkifyText";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 const ShowNotices = () => {
     const navigate = useNavigate();
@@ -54,15 +55,15 @@ const ShowNotices = () => {
         );
     };
 
-    const deleteHandler = async (
+    const [openConfirm, setOpenConfirm] = useState(false);
+    const [deleteInfo, setDeleteInfo] = useState({ id: null, address: "" });
+
+    const deleteHandler = (
         deleteID,
         address
     ) => {
-        await dispatch(
-            deleteUser(deleteID, address)
-        );
-
-        refreshNotices();
+        setDeleteInfo({ id: deleteID, address });
+        setOpenConfirm(true);
     };
 
     const noticeColumns = [
@@ -294,6 +295,14 @@ const ShowNotices = () => {
                 </Paper>
             )}
 
+            <ConfirmModal
+                open={openConfirm}
+                onClose={() => setOpenConfirm(false)}
+                onConfirm={async () => {
+                    await dispatch(deleteUser(deleteInfo.id, deleteInfo.address));
+                    refreshNotices();
+                }}
+            />
             <SpeedDialTemplate actions={actions} />
         </Box>
     );
