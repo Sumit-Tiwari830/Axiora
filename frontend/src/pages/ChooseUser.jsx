@@ -15,6 +15,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../redux/userRelated/userHandle";
 import Popup from "../components/Popup";
+import Footer from "../components/Footer";
 
 const roles = [
     {
@@ -90,12 +91,14 @@ const ChooseUser = ({ visitor }) => {
             sx={{
                 minHeight: "100vh",
                 display: "flex",
-                justifyContent: "center",
+                flexDirection: "column",
+                justifyContent: "space-between",
                 alignItems: "center",
                 background: "linear-gradient(160deg, #f0f2f8 0%, #e8e6f8 50%, #eef2ff 100%)",
                 position: "relative",
                 overflow: "hidden",
-                py: 6,
+                pt: 8,
+                pb: 2,
                 px: 2,
             }}
         >
@@ -127,7 +130,7 @@ const ChooseUser = ({ visitor }) => {
                 }}
             />
 
-            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, my: "auto" }}>
                 {/* Header */}
                 <Box className="animate-fadeInUp" sx={{ textAlign: "center", mb: 7 }}>
                     {visitor === "guest" && (
@@ -271,6 +274,7 @@ const ChooseUser = ({ visitor }) => {
                     showPopup={showPopup}
                 />
             </Container>
+            <Footer />
         </Box>
     );
 };

@@ -18,6 +18,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginUser } from "../redux/userRelated/userHandle";
 import Popup from "../components/Popup";
+import Footer from "../components/Footer";
 
 const LoginPage = ({ role }) => {
     const dispatch = useDispatch();
@@ -205,16 +206,18 @@ const LoginPage = ({ role }) => {
                 sx={{
                     flex: 1,
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent: "space-between",
                     background: "#ffffff",
                     px: { xs: 3, sm: 5 },
-                    py: 4,
+                    pt: 8,
+                    pb: 2,
                 }}
             >
                 <Box
                     className="animate-fadeInUp"
-                    sx={{ width: "100%", maxWidth: 440 }}
+                    sx={{ width: "100%", maxWidth: 440, my: "auto" }}
                 >
                     {/* Header */}
                     <Box sx={{ mb: 4 }}>
@@ -433,6 +436,7 @@ const LoginPage = ({ role }) => {
                         )}
                     </Box>
                 </Box>
+                <Footer />
             </Box>
 
             {/* Loading / Popup overlays */}

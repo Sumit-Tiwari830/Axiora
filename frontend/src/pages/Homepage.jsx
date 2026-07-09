@@ -8,6 +8,7 @@ import {
     Psychology,
 } from "@mui/icons-material";
 import Students from "../assets/student.png";
+import Footer from "../components/Footer";
 
 const features = [
     {
@@ -393,6 +394,7 @@ const Homepage = () => {
                     </Box>
                 </Typography>
             </Box>
+            <Footer />
         </Box>
     );
 };

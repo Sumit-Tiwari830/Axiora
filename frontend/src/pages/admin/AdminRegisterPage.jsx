@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import Footer from "../../components/Footer";
 
 import {
     Grid,
@@ -137,9 +138,12 @@ const AdminRegisterPage = () => {
                     elevation={0}
                     sx={{
                         display: "flex",
+                        flexDirection: "column",
                         alignItems: "center",
-                        justifyContent: "center",
+                        justifyContent: "space-between",
                         background: "#f8fafc",
+                        pt: 8,
+                        pb: 2,
                     }}
                 >
                     <Card
@@ -148,6 +152,7 @@ const AdminRegisterPage = () => {
                             maxWidth: 500,
                             borderRadius: "24px",
                             boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
+                            my: "auto",
                         }}
                     >
                         <CardContent sx={{ p: 4 }}>
@@ -308,6 +313,7 @@ const AdminRegisterPage = () => {
                             </Box>
                         </CardContent>
                     </Card>
+                    <Footer />
                 </Grid>
 
                 <Grid
