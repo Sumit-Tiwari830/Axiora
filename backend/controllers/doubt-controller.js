@@ -9,7 +9,7 @@ const askDoubt = async (req, res) => {
         const { question, messages } = req.body;
 
         let finalMessages = [];
-        let model = "llama-3.3-70b-versatile"; // High-quality text model
+        let model = "llama-3.1-8b-instant"; // High-quality text model
 
         const systemPrompt = `
 You are an AI Doubt Solver integrated into the Axiora School Management System.
